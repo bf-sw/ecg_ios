@@ -1,0 +1,6 @@
+framework module Pods_ecg {
+  umbrella header "Pods-ecg-umbrella.h"
+
+  export *
+  module * { export * }
+}

@@ -1,0 +1,11 @@
+/* 
+  InfoPlist.strings
+  ecg
+
+  Created by insung on 4/10/25.
+  
+*/
+
+
+NSLocationWhenInUseUsageDescription = "위치 서비스를 사용하려면 권한이 필요합니다.";
+NSBluetoothAlwaysUsageDescription = "기기 연결을 위해 블루투스 권한이 필요합니다.";

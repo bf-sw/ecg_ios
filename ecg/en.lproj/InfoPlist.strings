@@ -1,0 +1,11 @@
+/* 
+  InfoPlist.strings
+  ecg
+
+  Created by insung on 4/10/25.
+  
+*/
+
+
+NSLocationWhenInUseUsageDescription = "Location access is required to use location services.";
+NSBluetoothAlwaysUsageDescription = "Bluetooth is needed to connect to devices.";
