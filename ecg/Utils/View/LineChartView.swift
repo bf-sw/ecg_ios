@@ -8,7 +8,8 @@
 import SwiftUI
 
 struct LineChartView: View {
-
+    @EnvironmentObject var viewModel: WaveformViewModel
+    
     @Binding var elapsedTime: Double
 
     // 측정 데이터: x는 시간(초), y는 0~100 사이 랜덤값
@@ -23,7 +24,7 @@ struct LineChartView: View {
     let measurementDuration: Double = 30.0
     let timerInterval: Double = 0.2
 
-    let maxValue: Double = 100          // Y축 최대값 (0 ~ 100)
+    let maxValue: Double = 10000          // Y축 최대값 (0 ~ 100)
     let xSpacing: CGFloat = 50.0        // 기본 1초당 픽셀 수
 
     var body: some View {
@@ -36,6 +37,22 @@ struct LineChartView: View {
             // 실제 데이터 영역의 너비는 elapsedTime에 따라 결정 (최소 1초)
             let measuredWidth = CGFloat(max(Int(ceil(elapsedTime)), 1)) * effectiveXSpacing
             let visibleWidth = geometry.size.width
+            
+            let lastTimestamp = viewModel.waveforms.last?.timestamp ?? Date()
+            
+            // (x: elapsedTime from lastTimestamp, y: lead1)
+            let points: [CGPoint] = viewModel.waveforms.compactMap { wf in
+                let x = lastTimestamp.timeIntervalSince(
+                    wf.timestamp
+                )  // 역방향 (최신 = 0)
+                guard x <= measurementDuration else {
+                    return nil
+                }             // 30초 초과 데이터 제거
+                return CGPoint(
+                    x: measurementDuration - x,
+                    y: Double(wf.lead1)
+                ) // 최신 = 오른쪽
+            }.sorted { $0.x < $1.x }  // x 오름차순 정렬
             
             HStack(alignment: .top, spacing: 0) {
                 // 좌측 Y축: 0부터 maxValue까지 표시 (0은 하단 중앙)

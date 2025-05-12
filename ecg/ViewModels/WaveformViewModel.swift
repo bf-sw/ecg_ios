@@ -18,9 +18,11 @@ struct Waveform {
     let isLead2Status: Bool
     let isHeartbeatDetected: Bool
     let batteryStatus: BatteryStatus
+    let timestamp: Date
     
     var description: String {
             """
+            🕒 Timestamp: \(timestamp)
             📟 Waveform HeartRate: \(heartRate) Lead1: \(lead1) Lead2: \(lead2) ArrhythmiaCode: \(arrhythmiaCode) ModuleType: \(moduleType) Lead1Status: \(isLead1Status) Lead2Status: \(isLead2Status) isHeartbeatDetected: \(isHeartbeatDetected) Battery Status: \(batteryStatus.rawValue)
             """
     }
@@ -34,6 +36,7 @@ class WaveformViewModel: ObservableObject {
     @Published var isLead1Connected: Bool = false
     @Published var isLead2Connected: Bool = false
     @Published var selectedMeasure: Int = 0
+    @Published var measureDate: Date = .now
     
     private let maxWaveformCount = 100 // ✅ 유지할 최대 개수
     private var cancellables = Set<AnyCancellable>()
@@ -100,7 +103,8 @@ class WaveformViewModel: ObservableObject {
             isLead1Status: status.isBitSet(at: 4),
             isLead2Status: status.isBitSet(at: 3),
             isHeartbeatDetected: status.isBitSet(at: 2),
-            batteryStatus: BatteryStatus(from: status.lowerBits(2))
+            batteryStatus: BatteryStatus(from: status.lowerBits(2)),
+            timestamp: .now
         )
     }
     
@@ -116,6 +120,7 @@ class WaveformViewModel: ObservableObject {
                 if byte == Constants.Bluetooth.FOOTER &&
                     buffer.count == Constants.Bluetooth.WAVEFORM_COUNT {
                     if let parsed = parseSingleWaveform(buffer) {
+                        print("parseReceivedData: \(parsed)")
                         DispatchQueue.main.async {
                             self.waveforms.append(parsed)
                             
@@ -126,7 +131,6 @@ class WaveformViewModel: ObservableObject {
                                         self.waveforms.count - self.maxWaveformCount
                                     )
                             }
-                            
                             // ✅ 상태값 추출해서 퍼블리시
                             self.heartRate = parsed.heartRate
                             self.isLead1Connected = parsed.isLead1Status
@@ -138,15 +142,15 @@ class WaveformViewModel: ObservableObject {
                                 case 0:
                                     return parsed.isLead1Status
                                 case 1:
-                                    return parsed.isLead2Status
+                                    return parsed.isLead1Status && parsed.isLead2Status
                                 default:
                                     return false
                                 }
                             }()
 
-                            if shouldTrigger,
-                               !self.hasTriggeredNavigation,
-                               !self.hasMovedToNextPage {
+                            if shouldTrigger == true,
+                               self.hasTriggeredNavigation == false,
+                               self.hasMovedToNextPage == false {
                                 self.hasTriggeredNavigation = true
                                 self.triggerNavigation = true
                             }

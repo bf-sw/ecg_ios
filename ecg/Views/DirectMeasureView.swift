@@ -91,6 +91,10 @@ struct DirectMeasureView: View {
             BluetoothManager.shared.sendCommand(
                 command: Constants.Bluetooth.MEASURE_START)
         }
+        .onDisappear() {
+            BluetoothManager.shared.sendCommand(
+                command: Constants.Bluetooth.MEASURE_STOP)
+        }
         .onReceive(viewModel.$triggerNavigation) { push in
             if push {
                 viewModel.markNavigationComplete() // ✅ 중복 방지
