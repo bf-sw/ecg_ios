@@ -96,4 +96,5 @@ struct MeasuringView: View {
 
 #Preview {
     MeasuringView()
+        .environmentObject(WaveformViewModel())
 }

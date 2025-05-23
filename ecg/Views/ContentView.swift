@@ -20,38 +20,46 @@ struct ContentView: View {
                 
                 Divider()
                 
-                NavigationStack(path: $router.path) {
-                    Group {
-                        switch router.selectedTab {
-                        case .home:
-                            HomeView()
-                        case .record:
-                            RecordView()
-                        case .menu:
-                            SettingsView()
-                        }
+                switch router.selectedTab {
+                case .home:
+                    NavigationStack(path: $router.path) {
+                        HomeView()
+                            .navigationDestination(for: Route.self) { route in
+                                if route == .bluetooth {
+                                    BluetoothView()
+                                } else if route == .patchMeasure {
+                                    PatchMeasureView()
+                                } else if route == .directMeasure {
+                                    DirectMeasureView()
+                                        .environmentObject(waveViewModel)
+                                } else if route == .measuring {
+                                    MeasuringView()
+                                        .environmentObject(waveViewModel)
+                                } else if route == .caution {
+                                    CautionView()
+                                } else if route == .manual{
+                                    ManualView()
+                                } else if route == .eventGuide{
+                                    EventGudieView()
+                                } else if route == .connectionGuide{
+                                    ConnectionGuideView()
+                                }
+                            }
                     }
-                    .background(Color.backgroundColor)
-                    .navigationDestination(for: Route.self) { route in
-                        if case route = .bluetooth {
-                            BluetoothView()
-                        } else if case route = .patchMeasure {
-                            PatchMeasureView()
-                        } else if case route = .directMeasure {
-                            DirectMeasureView()
-                                .environmentObject(WaveformViewModel())
-                        } else if case route = .measuring {
-                            MeasuringView()
-                                .environmentObject(WaveformViewModel())
-                        } else if case route = .caution {
-                            CautionView()
-                        } else if case route = .manual{
-                            ManualView()
-                        }
+                case .record:
+                    NavigationStack(path: $router.path) {
+                        RecordView()
+                    }
+                case .event:
+                    NavigationStack(path: $router.path) {
+                        EventView()
+                    }
+                case .settings:
+                    NavigationStack(path: $router.path) {
+                        SettingsView()
                     }
                 }
             }
-            .frame(maxHeight: .infinity)
             .environmentObject(router)
             .environmentObject(popupManager)
             
@@ -76,6 +84,8 @@ struct ContentView: View {
                 )
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .toast()
     }
 }
 

@@ -11,7 +11,7 @@ struct PermissionView: View {
     @StateObject var permissionManager = PermissionManager()
     
     var body: some View {
-        VStack(spacing: 48) {
+        VStack(spacing: 40) {
             // 상단 안내 타이틀
             VStack(alignment: .center, spacing: 24) {
                 Text("permission_title")
@@ -93,6 +93,8 @@ struct PermissionView: View {
             .foregroundColor(.secondaryColor)
 
             
+            Spacer()
+            
             // 계속 버튼
             Button(action: {
                 if permissionManager.allPermissionsGranted == false {
@@ -100,18 +102,19 @@ struct PermissionView: View {
                 }
             }) {
                 Text("계속")
-                    .frame(maxWidth: 440)
+                    .frame(maxWidth: 420)
                     .padding()
                     .foregroundColor(.backgroundColor)
             }
             .background(Color.primaryColor)
             .cornerRadius(12)
+            .padding()
         }.fullScreenCover(isPresented: $permissionManager.allPermissionsGranted) {
             ContentView()
         }.transaction({ transaction in
             transaction.disablesAnimations = true
         })
-        .padding(24)
+        .padding(40)
     }
 }
 #Preview {

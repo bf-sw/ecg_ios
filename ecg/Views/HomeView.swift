@@ -20,7 +20,7 @@ struct HomeView: View {
                     .scaledToFit()
                 Text("|")
                     .font(.titleFont)
-                Text("HAMONICA")
+                Text("DUAL ECG MONITOR")
                     .font(.titleFont)
                     .foregroundColor(.primaryColor)
                 Spacer()
@@ -42,7 +42,7 @@ struct HomeView: View {
                     // 상단
                     VStack(spacing: 8) {
                         HStack {
-                            Text("수동 측정 방법 알아보기")
+                            Text("이벤트 측정 방법 알아보기")
                                 .font(.titleFont)
                             Spacer()
                             Button("주의사항") {
@@ -58,30 +58,23 @@ struct HomeView: View {
                         }
                         .padding()
                         
-                        Image("img_measure_device")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(minHeight: 140)
-                        
-                        Text("패치를 가슴에 부착하면 얼굴을 켜지 않아도\n부정맥을 체크할 수 있어요.")
-                            .font(.desciptionFont)
-                            .foregroundColor(.secondaryColor)
-                            .multilineTextAlignment(.center)
-                            .fixedSize(horizontal: false, vertical: true)
-                        
                         Button(action: {
-                            // 사용설명서 페이지
-                            router.push(to: .manual)
+                            router.push(to: .eventGuide)
                         }) {
-                            Text("사용설명서")
-                                .padding()
-                                .font(.desciptionFont)
-                                .foregroundColor(.onSurfaceColor)
-                                .background(Color.surfaceColor)
-                                .cornerRadius(10)
+                            VStack {
+                                Image("img_measure_device")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(minHeight: 140)
+                                    .padding()
+                                
+                                Text("패치를 가슴에 부착하면\n연결이 끊겨도 부정맥을 체크할 수 있어요.")
+                                    .font(.desciptionFont)
+                                    .foregroundColor(.secondaryColor)
+                                    .multilineTextAlignment(.center)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
                         }
-                        .padding(.top, 16)
-                        
                         Spacer()
                     }
                     .padding(8)
@@ -168,8 +161,7 @@ struct HomeView: View {
                 .padding(.vertical, 8)
                 .padding(.horizontal, 16)
                 .foregroundColor(.surfaceColor)
-                .background(Color.surfaceVariantColor)
-                .cornerRadius(10)
+                .boxRounded()
             }
             .padding(.vertical, 8)
             
@@ -255,6 +247,7 @@ struct HomeView: View {
                 Spacer()
                 Button("연결이 어려우신가요?") {
                     // 연결 가이드 페이지
+                    router.push(to: .connectionGuide)
                 }
                 .font(.desciptionFont)
                 .padding(.vertical, 8)

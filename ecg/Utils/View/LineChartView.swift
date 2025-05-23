@@ -236,6 +236,7 @@ struct GridLinesView: View {
 #Preview {
     StatefulPreviewWrapper(0) { value in
         LineChartView(elapsedTime: value)
+            .environmentObject(WaveformViewModel())
     }
 }
 

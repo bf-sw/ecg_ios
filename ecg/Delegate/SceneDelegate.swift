@@ -16,8 +16,9 @@ class SceneDelegate: NSObject, UIWindowSceneDelegate {
         window = UIWindow(frame: windowScene.coordinateSpace.bounds)
         window?.windowScene = windowScene
 
-        window?.rootViewController = UIHostingController(rootView: SplashView())
+        window?.rootViewController = UIHostingController(
+            rootView: SplashView()
+        )
         window?.makeKeyAndVisible()
     }
-
 }

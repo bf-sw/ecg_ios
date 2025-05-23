@@ -8,16 +8,21 @@
 import SwiftUI
 
 struct AppBarView: View {
-    @StateObject private var viewModel = BluetoothViewModel()
     @Environment(\.presentationMode) var presentationMode
     
     var title: String
+    var backAction: (() -> Void)? = nil
+    var rightContent: (() -> AnyView)? = nil
 
     var body: some View {
         ZStack {
             HStack {
                 Button(action: {
-                    presentationMode.wrappedValue.dismiss()
+                    guard let action = backAction else {
+                        presentationMode.wrappedValue.dismiss()
+                        return
+                    }
+                    action()
                 }) {
                     Image(uiImage: UIImage(named: "ic_back")!)
                 }
@@ -29,8 +34,8 @@ struct AppBarView: View {
             
             HStack {
                 Spacer()
-                if (viewModel.connectedDevice != nil) {
-                    Image(uiImage: UIImage(named: "ic_battery3")!)
+                if let rightView = rightContent {
+                    rightView()
                 }
             }
         }

@@ -11,21 +11,23 @@ struct SideBarView: View {
     @EnvironmentObject var router: Router
     
     var body: some View {
-        VStack(spacing: 80) {
+        VStack(spacing: 0) {
             Spacer()
-            ForEach(SideBarTab.allCases) { tab in
+            ForEach(SideBarTab.allCases, id: \.self) { tab in
                 Button(action: {
                     router.selectedTab = tab
+                    router.popToRoot()
                 }) {
                     VStack {
+                        let selectedColor: Color = router.selectedTab == tab ? .customPrimary : .customSurface
                         Image(uiImage: UIImage(named: tab.icon)!)
-                        Text(LocalizedStringKey(tab.rawValue))
-                            .foregroundColor(router.selectedTab == tab ? .customSecondary : .customPrimary)
+                            .renderingMode(.template)
+                            .foregroundColor(selectedColor)
+                        Text(LocalizedStringKey(tab.name))
+                            .font(.titleFont)
+                            .foregroundColor(selectedColor)
                     }
-                    .padding(30)
-                    .foregroundColor(router.selectedTab == tab ? .customSecondary : .customPrimary)
-                    .background(router.selectedTab == tab ? .customPrimary : Color.clear)
-                    .cornerRadius(20)
+                    .padding(20)
                 }
             }
             .padding(20)

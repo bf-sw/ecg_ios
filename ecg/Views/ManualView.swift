@@ -71,17 +71,20 @@ struct ManualView: View {
             }
             .padding(40)
 
-            Button("확인") {
-                router.pop()
-            }
-            .frame(maxWidth: 420)
-            .padding()
-            .font(.desciptionFont)
-            .foregroundColor(.onSurfaceColor)
-            .background(Color.surfaceColor)
-            .cornerRadius(10)
-            
             Spacer()
+            
+            Button(action: {
+                router.pop()
+            }) {
+                Text("확인")
+                    .frame(maxWidth: 420)
+                    .padding()
+                    .font(.desciptionFont)
+                    .foregroundColor(.onSurfaceColor)
+                    .background(Color.surfaceColor)
+                    .cornerRadius(10)
+                    .padding(40)
+            }
         }
         .background(Color.backgroundColor)
         .navigationBarHidden(true)

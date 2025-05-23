@@ -18,7 +18,7 @@ struct PopupView: View {
 
     var body: some View {
         ZStack {
-            Color.black.opacity(0.7)
+            Color.black.opacity(0.8)
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {

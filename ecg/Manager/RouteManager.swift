@@ -13,21 +13,32 @@ enum Route: Hashable {
     case directMeasure
     case caution
     case manual
+    case eventGuide
+    case connectionGuide
     case measuring
 }
 
-enum SideBarTab: String, CaseIterable, Identifiable {
-    case home = "tab_home"
-    case record = "tab_record"
-    case menu = "tab_menu"
+enum SideBarTab: CaseIterable {
+    case home
+    case record
+    case event
+    case settings
 
-    var id: String { rawValue }
+    var name: String {
+        switch self {
+        case .home: return "tab_home"
+        case .record: return "tab_record"
+        case .event: return "tab_event"
+        case .settings: return "tab_settings"
+        }
+    }
 
     var icon: String {
         switch self {
-        case .home: return "ic_home_nor"
-        case .record: return "ic_record_nor"
-        case .menu: return "ic_menu_nor"
+        case .home: return "ic_home"
+        case .record: return "ic_record"
+        case .event: return "ic_event"
+        case .settings: return "ic_settings"
         }
     }
 }

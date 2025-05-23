@@ -35,6 +35,7 @@ class WaveformViewModel: ObservableObject {
     @Published var heartRate: Int = 0
     @Published var isLead1Connected: Bool = false
     @Published var isLead2Connected: Bool = false
+    @Published var batteryStatus: BatteryStatus = .unknown
     @Published var selectedMeasure: Int = 0
     @Published var measureDate: Date = .now
     
@@ -135,6 +136,7 @@ class WaveformViewModel: ObservableObject {
                             self.heartRate = parsed.heartRate
                             self.isLead1Connected = parsed.isLead1Status
                             self.isLead2Connected = parsed.isLead2Status
+                            self.batteryStatus = parsed.batteryStatus
                             
                             // ✅ 조건 분기 트리거 로직
                             let shouldTrigger: Bool = {

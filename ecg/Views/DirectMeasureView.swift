@@ -13,13 +13,17 @@ struct DirectMeasureView: View {
     @EnvironmentObject var router: Router
     @EnvironmentObject var viewModel: WaveformViewModel
     
-    private var bluetoothManager: CBCentralManager!
+    private var bluetoothManager = BluetoothManager.shared
     
     private let segments = ["1-유도", "6-유도"]
     
     var body: some View {
         VStack {
-            AppBarView(title: "직접 측정")
+            AppBarView(title: "직접 측정", rightContent: {
+                AnyView(
+                    imageBatteryStatus()
+                )
+            })
             
             Text("전극 접촉이 완료되면 측정을 시작해요.")
                 .font(.titleFont)
@@ -88,11 +92,11 @@ struct DirectMeasureView: View {
         .navigationBarHidden(true)
         .onAppear() {
             viewModel.resetForNextSession()
-            BluetoothManager.shared.sendCommand(
+            bluetoothManager.sendCommand(
                 command: Constants.Bluetooth.MEASURE_START)
         }
         .onDisappear() {
-            BluetoothManager.shared.sendCommand(
+            bluetoothManager.sendCommand(
                 command: Constants.Bluetooth.MEASURE_STOP)
         }
         .onReceive(viewModel.$triggerNavigation) { push in
@@ -102,8 +106,35 @@ struct DirectMeasureView: View {
             }
         }
     }
+    
+    func imageBatteryStatus() -> Image? {
+        
+        var imageName = ""
+        
+        switch viewModel.batteryStatus {
+        case .empty:
+            imageName = "ic_battery0"
+            break
+        case .level1:
+            imageName = "ic_battery1"
+            break
+        case .level2:
+            imageName = "ic_battery2"
+            break
+        case .full:
+            imageName = "ic_battery3"
+            break
+        default:
+            break
+        }
+        if imageName.isEmpty == false {
+            return Image(uiImage: UIImage(named: imageName)!)
+        } else {
+            return nil
+        }
+    }
 }
 
 #Preview {
-    DirectMeasureView()
+    DirectMeasureView().environmentObject(WaveformViewModel())
 }

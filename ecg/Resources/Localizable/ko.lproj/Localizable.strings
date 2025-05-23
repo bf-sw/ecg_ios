@@ -9,7 +9,8 @@
 
 "tab_home" = "홈";
 "tab_record" = "기록";
-"tab_menu" = "메뉴";
+"tab_event" = "이벤트";
+"tab_settings" = "설정";
 "permission_title" = "앱 접근 권한 안내";
 "permission_subtitle" = "안전하고 편리하게 앱 서비스를 이용하려면\n아래 접근 권한을 허용해 주세요.";
 "essential_permission_title" = "필수 항목";
