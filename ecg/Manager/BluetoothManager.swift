@@ -15,15 +15,24 @@ enum BluetoothEvent {
     case waveform(Data)
 }
 
+enum BluetoothState {
+    case notConnection
+    case connecting
+    case connected
+    case failed
+    case disconnected
+}
+
 class BluetoothManager: NSObject, ObservableObject {
     static let shared = BluetoothManager()
     
     private var centralManager: CBCentralManager!
     private var writeCharacteristic: CBCharacteristic?
 
+    @EnvironmentObject var router: Router
     @Published var discoveredDevices: [CBPeripheral] = []
     @Published var connectedDevice: CBPeripheral?
-    @Published var isConnected = false
+    @Published var bluetoothState: BluetoothState = .notConnection
     
     let eventPublisher = PassthroughSubject<BluetoothEvent, Never>()
     
@@ -45,7 +54,7 @@ class BluetoothManager: NSObject, ObservableObject {
 
     // 연결
     func connect(to peripheral: CBPeripheral) {
-        AppManager.shared.showLoading()
+        bluetoothState = .connecting
         centralManager.connect(peripheral, options: nil)
     }
     
@@ -54,7 +63,7 @@ class BluetoothManager: NSObject, ObservableObject {
         if let device = connectedDevice {
             centralManager.cancelPeripheralConnection(device)
             connectedDevice = nil
-            isConnected = false
+            bluetoothState = .notConnection
         }
     }
     
@@ -129,25 +138,24 @@ extension BluetoothManager: CBCentralManagerDelegate {
         peripheral.delegate = self
         peripheral.discoverServices(nil)
         
-        isConnected = true
+        bluetoothState = .connected
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: {
             self.connectedDevice = peripheral
-            AppManager.shared.hideLoading()
+            PopupManager.shared.hideLoading()
         })
     }
 
     func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
         print("❌ 연결 실패: \(error?.localizedDescription ?? "unknown error")")
         connectedDevice = nil
-        isConnected = false
-        AppManager.shared.hideLoading()
+        bluetoothState = .failed
+        PopupManager.shared.hideLoading()
     }
     
     func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, timestamp: CFAbsoluteTime, isReconnecting: Bool, error: (any Error)?) {
         print("🍎 연결 끊김: \(error?.localizedDescription ?? "unknown error")")
+        bluetoothState = .disconnected
         connectedDevice = nil
-        isConnected = false
-        
     }
 }
 

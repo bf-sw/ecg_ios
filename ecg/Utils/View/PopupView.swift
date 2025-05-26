@@ -8,13 +8,8 @@
 import SwiftUI
 
 struct PopupView: View {
-    let title: String
-    let messageHeader: String
-    let messages: [String]
-    let confirmTitle: String
-    let cancelTitle: String?
-    let onConfirm: () -> Void
-    let onCancel: (() -> Void)?
+    let config: PopupManager.PopupConfig
+    let onDismiss: () -> Void
 
     var body: some View {
         ZStack {
@@ -23,16 +18,16 @@ struct PopupView: View {
 
             VStack(spacing: 0) {
                 VStack(spacing: 40) {
-                    Text(title)
+                    Text(config.title)
                         .font(.popupHeaderFont)
 
-                    Text(messageHeader)
+                    Text(config.messageHeader)
                         .multilineTextAlignment(.center)
                         .font(.popupTitleFont)
 
                     VStack(alignment: .leading, spacing: 6) {
-                        ForEach(messages.indices, id: \.self) { index in
-                            Text(messages[index])
+                        ForEach(config.messages.indices, id: \.self) { index in
+                            Text(config.messages[index])
                                 .font(.popupDescriptionFont)
                         }
                     }
@@ -42,7 +37,7 @@ struct PopupView: View {
                 Divider()
                 
                 HStack {
-                    if let cancelTitle = cancelTitle, let onCancel = onCancel {
+                    if let cancelTitle = config.cancelTitle, let onCancel = config.onCancel {
                         Button(action: onCancel) {
                             Text(cancelTitle)
                                 .font(.popupDescriptionFont)
@@ -53,8 +48,8 @@ struct PopupView: View {
                         Divider()
                     }
 
-                    Button(action: onConfirm) {
-                        Text(confirmTitle)
+                    Button(action: config.onConfirm) {
+                        Text(config.confirmTitle)
                             .foregroundColor(.primaryColor)
                             .font(.popupDescriptionFont)
                             .frame(maxWidth: .infinity)
@@ -72,17 +67,16 @@ struct PopupView: View {
 
 
 #Preview {
-    PopupView(
-        title: "타이틀",
-        messageHeader: "헤더",
-        messages: ["내용1", "1. 내용2"],
+    PopupView(config: PopupManager.PopupConfig(
+        title: "미리보기 팝업",
+        messageHeader: "이것은 헤더입니다",
+        messages: ["첫 번째 메시지", "두 번째 메시지"],
         confirmTitle: "확인",
         cancelTitle: "취소",
-        onConfirm: {
-            
-        },
-        onCancel: {
-            
-        }
-    )
+        onConfirm: { print("확인 클릭됨") },
+        onCancel: { print("취소 클릭됨") }
+    ),
+    onDismiss: {
+        print("팝업 닫힘")
+    })
 }

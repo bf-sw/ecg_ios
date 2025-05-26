@@ -9,8 +9,7 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject var router = Router()
-    @StateObject var popupManager = PopupManager()
-    @StateObject var appManager = AppManager.shared
+    @StateObject var bluetoothManager = BluetoothManager.shared
     @StateObject var waveViewModel = WaveformViewModel()
 
     var body: some View {
@@ -61,31 +60,22 @@ struct ContentView: View {
                 }
             }
             .environmentObject(router)
-            .environmentObject(popupManager)
-            
-            // 연결 중 인디케이터
-            if appManager.isLoading {
-                LoadingView()
-            } else if popupManager.isShowing {
-                PopupView(
-                    title: popupManager.config.title,
-                    messageHeader: popupManager.config.messageHeader,
-                    messages: popupManager.config.messages,
-                    confirmTitle: popupManager.config.confirmTitle,
-                    cancelTitle: popupManager.config.cancelTitle,
-                    onConfirm: {
-                        popupManager.isShowing = false
-                        popupManager.config.onConfirm()
-                    },
-                    onCancel: {
-                        popupManager.isShowing = false
-                        popupManager.config.onCancel?()
-                    }
-                )
+        }
+        .onChange(of: bluetoothManager.bluetoothState) { state in
+            print("bluetoothManager.connectedDevice : \(bluetoothManager.bluetoothState) state : \(state)")
+
+            if state == .connecting {
+                PopupManager.shared.showLoading()
+            } else if state == .disconnected {
+                PopupManager.shared.showPopup(title: "연결이 끊어졌습니다.", confirmTitle: "확인", onConfirm: {
+                    self.router.popToRoot()
+                })
             }
         }
+        
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .toast()
+        .popup()
     }
 }
 

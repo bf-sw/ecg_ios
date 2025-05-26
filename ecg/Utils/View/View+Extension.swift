@@ -26,28 +26,13 @@ extension View {
             )
     }
     
-    // 토스트 메세지 추가
+    // 토스트 기능 추가
     func toast() -> some View {
         self.modifier(ToastModifier())
     }
-}
-
-struct ToastModifier: ViewModifier {
-    @ObservedObject var toastManager = ToastManager.shared
-
-    func body(content: Content) -> some View {
-        ZStack {
-            content
-
-            if let message = toastManager.message {
-                VStack {
-                    Spacer()
-                    ToastView(message: message)
-                }
-                .animation(.easeInOut(duration: 0.3), value: toastManager.message)
-                .transition(.opacity)
-            }
-        }
+    
+    // 팝업 기능 추가
+    func popup() -> some View {
+        self.modifier(PopupModifier())
     }
 }
-

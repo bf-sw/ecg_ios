@@ -5,11 +5,17 @@
 //  Created by insung on 4/22/25.
 //
 
-import SwiftUI
+import Foundation
+import Combine
 
 class PopupManager: ObservableObject {
-    @Published var isShowing: Bool = false
-    @Published var config: PopupConfig = .default
+    static let shared = PopupManager()
+
+    // 팝업 상태
+    @Published var popup: PopupConfig? = nil
+
+    // 로딩 상태
+    @Published var isLoading: Bool = false
 
     struct PopupConfig {
         var title: String
@@ -19,22 +25,44 @@ class PopupManager: ObservableObject {
         var cancelTitle: String?
         var onConfirm: () -> Void
         var onCancel: (() -> Void)?
-        
-        static var `default`: PopupConfig {
-            PopupConfig(
-                title: "", messageHeader: "", messages: [],
-                confirmTitle: "확인", cancelTitle: nil,
-                onConfirm: {}, onCancel: nil
-            )
-        }
     }
 
-    func showPopup(config: PopupConfig) {
-        self.config = config
-        isShowing = true
+    func showPopup(
+        title: String,
+        messageHeader: String = "",
+        messages: [String] = [],
+        confirmTitle: String = "확인",
+        cancelTitle: String? = nil,
+        onConfirm: @escaping () -> Void = {},
+        onCancel: (() -> Void)? = nil
+    ) {
+        popup = PopupConfig(
+            title: title,
+            messageHeader: messageHeader,
+            messages: messages,
+            confirmTitle: confirmTitle,
+            cancelTitle: cancelTitle,
+            onConfirm: {
+                self.hidePopup()
+                onConfirm()
+            },
+            onCancel: {
+                self.hidePopup()
+                onCancel?()
+            }
+        )
     }
 
     func hidePopup() {
-        isShowing = false
+        popup = nil
+    }
+
+    // 로딩 제어
+    func showLoading() {
+        isLoading = true
+    }
+
+    func hideLoading() {
+        isLoading = false
     }
 }
