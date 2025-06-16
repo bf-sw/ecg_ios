@@ -9,7 +9,8 @@ enum Constants {
     enum Bluetooth {
         /// 버전
         static let VERSION: UInt8 = 0x80
-        static let MEASURE_START: UInt8 = 0x83
+        static let MEASURE_START_1: UInt8 = 0x82
+        static let MEASURE_START_6: UInt8 = 0x83
         static let MEASURE_STOP: UInt8 = 0x84
 
         static let SEND_EVENT: UInt8 = 0x85

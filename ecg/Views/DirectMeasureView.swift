@@ -41,46 +41,66 @@ struct DirectMeasureView: View {
             .pickerStyle(.segmented)
             .boxShadow()
             .padding()
+            .onChange(of: viewModel.selectedMeasure) { newValue in
+                bluetoothManager.sendCommand(
+                    command: newValue != 0 ? Constants.Bluetooth.MEASURE_START_1 : Constants.Bluetooth.MEASURE_START_6
+                )
+            }
 
-            VStack {
-                HStack {
-                    Text("왼손")
-                        .font(.desciptionFont)
-                        .foregroundColor(.surfaceColor)
-                        .padding()
-                        .boxShadow(color: Color.surfaceVariantColor)
-                    ZStack {
-                        Image("img_device_front")
-                            .scaledToFit()
-                        if viewModel.isLead1Connected == true {
-                            Image("img_device_left_a")
-                                .scaledToFit()
-                            Image("img_device_right_a")
-                                .scaledToFit()
-                        }
-                    }
-                    Text("오른손")
-                        .font(.desciptionFont)
-                        .foregroundColor(.surfaceColor)
-                        .padding()
-                        .boxShadow(color: Color.surfaceVariantColor)
-                }
-                
-                if (viewModel.selectedMeasure != 0) {
-                    VStack {
-                        ZStack {
-                            Image("img_device_back")
-                                .scaledToFit()
-                            if viewModel.isLead2Connected == true {
-                                Image("img_device_back_a")
-                                    .scaledToFit()
-                            }
-                        }
-                        Text("왼쪽 모릎 혹은 발목")
+            ZStack {
+                VStack {
+                    HStack {
+                        Text("왼손")
                             .font(.desciptionFont)
                             .foregroundColor(.surfaceColor)
                             .padding()
                             .boxShadow(color: Color.surfaceVariantColor)
+                        ZStack {
+                            Image("img_device_front")
+                                .scaledToFit()
+                            if viewModel.isLead1Connected == true {
+                                Image("img_device_left_a")
+                                    .scaledToFit()
+                                Image("img_device_right_a")
+                                    .scaledToFit()
+                            }
+                        }
+                        Text("오른손")
+                            .font(.desciptionFont)
+                            .foregroundColor(.surfaceColor)
+                            .padding()
+                            .boxShadow(color: Color.surfaceVariantColor)
+                    }
+                    
+                    if (viewModel.selectedMeasure != 0) {
+                        VStack {
+                            ZStack {
+                                Image("img_device_back")
+                                    .scaledToFit()
+                                if viewModel.isLead2Connected == true {
+                                    Image("img_device_back_a")
+                                        .scaledToFit()
+                                }
+                            }
+                            Text("왼쪽 모릎 혹은 발목")
+                                .font(.desciptionFont)
+                                .foregroundColor(.surfaceColor)
+                                .padding()
+                                .boxShadow(color: Color.surfaceVariantColor)
+                        }
+                    }
+                }
+                
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        Image(
+                            viewModel.selectedMeasure == 0 ?
+                            "img_measure_guide_1" : "img_measure_guide_6"
+                        )
+                        .scaledToFit()
+                        .padding(.horizontal, 24)
                     }
                 }
             }
@@ -93,11 +113,13 @@ struct DirectMeasureView: View {
         .onAppear() {
             viewModel.resetForNextSession()
             bluetoothManager.sendCommand(
-                command: Constants.Bluetooth.MEASURE_START)
+                command: viewModel.selectedMeasure != 0 ? Constants.Bluetooth.MEASURE_START_1 : Constants.Bluetooth.MEASURE_START_6)
         }
         .onDisappear() {
-            bluetoothManager.sendCommand(
-                command: Constants.Bluetooth.MEASURE_STOP)
+            if (viewModel.triggerNavigation == false) {
+                bluetoothManager.sendCommand(
+                    command: Constants.Bluetooth.MEASURE_STOP)
+            }
         }
         .onReceive(viewModel.$triggerNavigation) { push in
             if push {

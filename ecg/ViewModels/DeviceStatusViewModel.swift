@@ -8,6 +8,20 @@
 import Foundation
 import Combine
 
+
+enum LeadType: Int {
+    case one = 0
+    case six = 1
+    
+    init(from raw: Int) {
+        switch raw {
+        case 0: self = .one
+        case 1: self = .six
+        default: self = .one
+        }
+    }
+}
+
 enum BatteryStatus: Int {
     case empty = 0
     case level1 = 1

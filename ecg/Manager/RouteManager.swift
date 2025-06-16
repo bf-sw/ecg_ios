@@ -16,6 +16,7 @@ enum Route: Hashable {
     case eventGuide
     case connectionGuide
     case measuring
+    case result
 }
 
 enum SideBarTab: CaseIterable {

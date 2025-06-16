@@ -11,8 +11,24 @@ struct MeasurementResultView: View {
     
     @State private var elapsedTime: Double = 30.0
     
+    private let options: [ListOption] = [.download, .delete]
+    
     var body: some View {
         VStack {
+            AppBarView(title: "직접 측정", rightContent: {
+                AnyView(
+                    Menu {
+                        ForEach(options, id: \.self) { option in
+                            Button(option.name) {
+                                updateSelectedOption(to: option)
+                            }
+                        }
+                    } label: {
+                        Label("", image: "ic_more")
+                            .padding(.horizontal, 8)
+                    }
+                )
+            })
             
             HStack {
                 Text("1-유도")
@@ -39,10 +55,24 @@ struct MeasurementResultView: View {
             .padding()
             .boxShadow()
             .padding()
-            LineChartView(elapsedTime: $elapsedTime)
-                .boxShadow()
-                .padding(.horizontal, 20)
-                .padding(.bottom, 40)
+            
+            Spacer()
+            
+//            LineChartView(elapsedTime: $elapsedTime)
+//                .boxShadow()
+//                .padding(.horizontal, 20)
+//                .padding(.bottom, 40)
+        }
+        .background(Color.backgroundColor)
+        .navigationBarHidden(true)
+    }
+    
+    // 옵션 선택 적용
+    private func updateSelectedOption(to option: ListOption) {
+        if (option == .download) {
+            print("download ")
+        } else {
+            print("option : \(option)")
         }
     }
 }

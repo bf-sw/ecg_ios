@@ -11,7 +11,8 @@ struct LineChartView: View {
     @EnvironmentObject var viewModel: WaveformViewModel
     
     @Binding var elapsedTime: Double
-
+    
+    @State private var isRealtimeMode: Bool = true
     // 측정 데이터: x는 시간(초), y는 0~100 사이 랜덤값
     @State private var dataPoints: [CGPoint] = []
     @State private var isMeasuring: Bool = true
@@ -20,7 +21,7 @@ struct LineChartView: View {
     @State private var zoomScale: CGFloat = 1.0
     @State private var lastZoomScale: CGFloat = 1.0
 
-        // 전체 측정 시간 및 타이머 간격
+    // 전체 측정 시간 및 타이머 간격
     let measurementDuration: Double = 30.0
     let timerInterval: Double = 0.2
 
@@ -107,14 +108,22 @@ struct LineChartView: View {
                 }
             }
             .onAppear {
-                startMeasurement()
+                if isRealtimeMode {
+                    startMeasurement()
+                }
             }
         }
         .padding(.vertical, 40)
         .padding(.horizontal)
     }
     
-    /// 측정 시작 시 0초 데이터 포인트를 즉시 추가한 후, 0.2초마다 새 랜덤 데이터를 추가합니다.
+    func setEntireData(_ points: [CGPoint]) {
+        isMeasuring = false
+        dataPoints = points
+        elapsedTime = Double(points.last?.x ?? 0.0)
+    }
+    
+    // 측정 시작 시 0초 데이터 포인트를 즉시 추가한 후, 0.2초마다 새 랜덤 데이터를 추가합니다.
     func startMeasurement() {
         dataPoints.removeAll()
         elapsedTime = 0.0
@@ -122,7 +131,7 @@ struct LineChartView: View {
         zoomScale = 1.0
         lastZoomScale = 1.0
         
-        // 0초에 첫 데이터 추가 (X축 레이블은 1초부터 나타남)
+        // 0초 데이터
         dataPoints.append(CGPoint(x: elapsedTime, y: Double.random(in: 0...maxValue)))
         
         Timer.scheduledTimer(withTimeInterval: timerInterval, repeats: true) { timer in

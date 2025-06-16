@@ -36,18 +36,25 @@ struct ContentView: View {
                                         .environmentObject(waveViewModel)
                                 } else if route == .caution {
                                     CautionView()
-                                } else if route == .manual{
+                                } else if route == .manual {
                                     ManualView()
-                                } else if route == .eventGuide{
+                                } else if route == .eventGuide {
                                     EventGudieView()
-                                } else if route == .connectionGuide{
+                                } else if route == .connectionGuide {
                                     ConnectionGuideView()
+                                } else if route == .result {
+                                    MeasurementResultView()
                                 }
                             }
                     }
                 case .record:
                     NavigationStack(path: $router.path) {
                         RecordView()
+                            .navigationDestination(for: Route.self) { route in
+                                if route == .result {
+                                    MeasurementResultView()
+                                }
+                            }
                     }
                 case .event:
                     NavigationStack(path: $router.path) {
@@ -62,14 +69,13 @@ struct ContentView: View {
             .environmentObject(router)
         }
         .onChange(of: bluetoothManager.bluetoothState) { state in
-            print("bluetoothManager.connectedDevice : \(bluetoothManager.bluetoothState) state : \(state)")
-
             if state == .connecting {
                 PopupManager.shared.showLoading()
             } else if state == .disconnected {
-                PopupManager.shared.showPopup(title: "연결이 끊어졌습니다.", confirmTitle: "확인", onConfirm: {
-                    self.router.popToRoot()
-                })
+                ToastManager.shared.show(message: "연결이 끊어졌습니다.")
+//                PopupManager.shared.showPopup(title: "연결이 끊어졌습니다.", confirmTitle: "확인", onConfirm: {
+//                    self.router.popToRoot()
+//                })
             }
         }
         

@@ -55,7 +55,7 @@ class BluetoothManager: NSObject, ObservableObject {
     // 연결
     func connect(to peripheral: CBPeripheral) {
         bluetoothState = .connecting
-        centralManager.connect(peripheral, options: nil)
+        self.centralManager.connect(peripheral, options: nil)
     }
     
     // 연결 해제
@@ -208,10 +208,11 @@ extension BluetoothManager: CBPeripheralDelegate {
             switch firstByte {
             case Constants.Bluetooth.RECEIVE_VERSION:
                 eventPublisher.send(.deviceStatus(value))
-            case Constants.Bluetooth.RECEIVE_WAVEFORM:
-                eventPublisher.send(.waveform(value))
+//            case Constants.Bluetooth.RECEIVE_WAVEFORM:
+//                eventPublisher.send(.waveform(value))
             default:
-                print("알 수 없는 데이터 타입: \(firstByte)")
+                eventPublisher.send(.waveform(value))
+//                print("알 수 없는 데이터 타입: \(firstByte)")
             }
         }
     }

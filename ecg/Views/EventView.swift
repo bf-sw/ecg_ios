@@ -10,7 +10,7 @@ import SwiftUI
 struct EventView: View {
     @EnvironmentObject var router: Router
     @State private var selectedOption: ListOption = .none
-    @State private var isChecked: Bool = false
+    @StateObject var viewModel = MeasurementListViewModel()
     
     private let options: [ListOption] = [.load, .download, .delete]
     
@@ -27,7 +27,7 @@ struct EventView: View {
                                     ToastManager.shared.show(message: "연결된 기기가 없습니다.")
                                     return
                                 }
-                                selectedOption = option;
+                                updateSelectedOption(to: option)
                             }
                         }
                     } label: {
@@ -38,7 +38,9 @@ struct EventView: View {
             })
             if selectedOption == .none {
                 Spacer()
-                emptyEvent()
+//                emptyEvent()
+                measurementList()
+                    .padding(.vertical, 24)
                 Spacer()
             } else {
                 Text(selectedOption.title)
@@ -46,11 +48,11 @@ struct EventView: View {
                     .foregroundColor(.surfaceColor)
                 HStack {
                     Button(action: {
-                        isChecked.toggle()
+                        viewModel.isSelected.toggle()
                     }) {
                         Image(
                             uiImage: UIImage(
-                                named: isChecked ? "ic_check_pre" : "ic_check_nor"
+                                named: viewModel.isSelected ? "ic_check_pre" : "ic_check_nor"
                             )!
                         )
                         Text("전체")
@@ -62,15 +64,16 @@ struct EventView: View {
                 .padding()
                 
                 // 리스트 추가
+                measurementList()
                 
                 Spacer()
                 HStack {
-                    Text("0개 선택됨")
+                    Text("\(viewModel.items.filter { $0.isSelected }.count)개 선택됨")
                         .font(.subtitleFont)
                         .padding()
                     Spacer()
                     Button(action: {
-
+                        updateSelectedOption(to: .none)
                     }) {
                         Text("취소")
                             .frame(width: 160)
@@ -102,6 +105,35 @@ struct EventView: View {
         .navigationBarHidden(true)
     }
     
+    // 옵션 선택 적용
+    private func updateSelectedOption(to option: ListOption) {
+        viewModel.isSelected = false
+        selectedOption = option
+        updateListMode()
+    }
+    
+    // 리스트 모드가 선택모드인지 구분
+    private func updateListMode() {
+        viewModel.listMode = (selectedOption == .none) ? .normal : .selection
+    }
+    
+    // 리스트
+    func measurementList() -> some View {
+        return ScrollView {
+            LazyVGrid(columns: [
+                GridItem(.flexible()),
+                GridItem(.flexible())
+            ], spacing: 24) {
+                ForEach(viewModel.items) { item in
+                    MeasurementListView(viewModel: viewModel, item: item)
+                        .padding(.horizontal, 12)
+                }
+            }
+        }
+        .padding(.horizontal, 16)
+    }
+    
+    // 기록 없음
     func emptyEvent() -> some View {
         return VStack {
             Text("이벤트 기록이 없어요.")
