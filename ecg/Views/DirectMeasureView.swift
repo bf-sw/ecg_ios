@@ -42,9 +42,7 @@ struct DirectMeasureView: View {
             .boxShadow()
             .padding()
             .onChange(of: viewModel.selectedMeasure) { newValue in
-                bluetoothManager.sendCommand(
-                    command: newValue != 0 ? Constants.Bluetooth.MEASURE_START_1 : Constants.Bluetooth.MEASURE_START_6
-                )
+                viewModel.startMeasurement(type: newValue == 0 ? .one : .six)
             }
 
             ZStack {
@@ -112,13 +110,11 @@ struct DirectMeasureView: View {
         .navigationBarHidden(true)
         .onAppear() {
             viewModel.resetForNextSession()
-            bluetoothManager.sendCommand(
-                command: viewModel.selectedMeasure != 0 ? Constants.Bluetooth.MEASURE_START_1 : Constants.Bluetooth.MEASURE_START_6)
+            viewModel.startMeasurement(type: viewModel.selectedMeasure == 0 ? .one : .six)
         }
         .onDisappear() {
             if (viewModel.triggerNavigation == false) {
-                bluetoothManager.sendCommand(
-                    command: Constants.Bluetooth.MEASURE_STOP)
+                viewModel.stopMeasurement()
             }
         }
         .onReceive(viewModel.$triggerNavigation) { push in

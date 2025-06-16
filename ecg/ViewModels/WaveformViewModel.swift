@@ -200,5 +200,21 @@ class WaveformViewModel: ObservableObject {
     func resetForNextSession() {
         hasMovedToNextPage = false
     }
+}
 
+extension WaveformViewModel {
+    func startMeasurement(type: LeadType) {
+        waveforms.removeAll()
+        BluetoothManager.shared
+            .sendCommand(
+                command: type == .one ? Constants.Bluetooth.MEASURE_START_1 : Constants.Bluetooth.MEASURE_START_6
+            )
+        print("📡 측정 시작 커맨드 전송됨")
+    }
+    
+    func stopMeasurement() {
+        BluetoothManager.shared
+            .sendCommand(command: Constants.Bluetooth.MEASURE_STOP)
+        print("📡 측정 종료 커맨드 전송됨")
+    }
 }

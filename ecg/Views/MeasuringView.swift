@@ -22,7 +22,7 @@ struct MeasuringView: View {
                 .font(.titleFont)
                 .padding()
                 
-            HStack(alignment: .center) {
+            HStack() {
                 VStack(spacing: 30) {
                     VStack(spacing: 4) {
                         Image(uiImage: UIImage(named: "ic_bpm")!)
@@ -41,6 +41,7 @@ struct MeasuringView: View {
                             .font(.titleFont)
                     }
                 }
+                .frame(width: 80)
                 LineChartView(elapsedTime: $elapsedTime)
                     .boxShadow()
                     .padding(.horizontal, 20)
@@ -60,15 +61,14 @@ struct MeasuringView: View {
     
     func checkLeadConnection() {
         
-        let selected = viewModel.selectedMeasure
-        print("checkLeadConnection: \(selected) viewModel.isLead1Connected: \(viewModel.isLead1Connected), viewModel.isLead1Connected: \(viewModel.isLead2Connected)")
-        let lead1Disconnected = selected == 0 && viewModel.isLead1Connected == false
-        let lead2Disconnected = selected == 1 && (viewModel.isLead1Connected == false || viewModel.isLead2Connected == false)
+        let leadType = viewModel.leadType
+        print("checkLeadConnection: \(leadType) viewModel.isLead1Connected: \(viewModel.isLead1Connected), viewModel.isLead1Connected: \(viewModel.isLead2Connected)")
+        let lead1Disconnected = leadType == .one && viewModel.isLead1Connected == false
+        let lead2Disconnected = leadType == .six && (viewModel.isLead1Connected == false || viewModel.isLead2Connected == false)
         
         if lead1Disconnected || lead2Disconnected {
             
-            BluetoothManager.shared.sendCommand(
-                command: Constants.Bluetooth.MEASURE_STOP)
+            viewModel.stopMeasurement()
             PopupManager.shared.showPopup(title: "측정 실패",
                                      messageHeader: "다음 내용을 확인해 보세요.",
                                      messages: [

@@ -72,8 +72,9 @@ struct ContentView: View {
             if state == .connecting {
                 PopupManager.shared.showLoading()
             } else if state == .disconnected {
-                ToastManager.shared.show(message: "연결이 끊어졌습니다.")
-//                PopupManager.shared.showPopup(title: "연결이 끊어졌습니다.", confirmTitle: "확인", onConfirm: {
+                self.router.popToRoot()
+                ToastManager.shared.show(message: "블루투스 연결이 해제되었습니다.")
+//                PopupManager.shared.showPopup(title: "블루투스 연결이 해제되었습니다.", confirmTitle: "확인", onConfirm: {
 //                    self.router.popToRoot()
 //                })
             }
