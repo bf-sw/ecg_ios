@@ -44,6 +44,7 @@ struct ContentView: View {
                                     ConnectionGuideView()
                                 } else if route == .result {
                                     MeasurementResultView()
+                                        .environmentObject(waveViewModel)
                                 }
                             }
                     }
@@ -53,6 +54,7 @@ struct ContentView: View {
                             .navigationDestination(for: Route.self) { route in
                                 if route == .result {
                                     MeasurementResultView()
+                                        .environmentObject(waveViewModel)
                                 }
                             }
                     }

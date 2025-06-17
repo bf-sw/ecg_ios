@@ -1,5 +1,5 @@
 //
-//  RealtimeLineChartView.swift
+//  LineChartView.swift
 //  ecg
 //
 //  Created by insung on 4/30/25.
@@ -11,7 +11,9 @@ struct LineChartView: View {
     @EnvironmentObject var viewModel: WaveformViewModel
     @Binding var elapsedTime: Double
 
-    @State private var isRealtimeMode: Bool = true
+    var waveforms: [Waveform] = []
+    var isRealtimeMode: Bool = true
+
     @State private var dataPoints: [CGPoint] = []
     @State private var isMeasuring: Bool = true
 
@@ -20,8 +22,7 @@ struct LineChartView: View {
     @State private var timer: Timer?
 
     let measurementDuration: Double = 30.0
-    let timerInterval: Double = 0.1
-
+    let timerInterval: Double = 0.004
     let maxValue: Double = 5000    // Y축: ±5000 범위
     let xSpacing: CGFloat = 50.0
 
@@ -44,7 +45,8 @@ struct LineChartView: View {
 
                             ZStack {
                                 GridLinesView(maxValue: maxValue,
-                                              chartSize: CGSize(width: fullChartWidth, height: graphHeight))
+                                              chartSize: CGSize(width: fullChartWidth, height: graphHeight),
+                                              xSpacing: effectiveXSpacing)
 
                                 LinePathView(dataPoints: dataPoints,
                                              xSpacing: effectiveXSpacing,
@@ -80,6 +82,8 @@ struct LineChartView: View {
             .onAppear {
                 if isRealtimeMode {
                     startMeasurement()
+                } else {
+                    setEntireDataFromWaveforms(waveforms)
                 }
             }
             .onDisappear {
@@ -91,11 +95,21 @@ struct LineChartView: View {
         .padding(.vertical, 40)
         .padding(.horizontal)
     }
-
-    func setEntireData(_ points: [CGPoint]) {
+    
+    func setEntireDataFromWaveforms(_ waveforms: [Waveform]) {
         isMeasuring = false
+
+        // 최대 7500개로 제한 (30초, 1초당 250개)
+        let maxWaveforms = 250 * 30
+        let trimmedWaveforms = Array(waveforms.prefix(maxWaveforms))
+
+        let points = trimmedWaveforms.enumerated().map { index, wf in
+            let x = Double(index) * (1.0 / 250.0) // = 0.004초 간격
+            return CGPoint(x: x, y: Double(wf.lead1))
+        }
+
         dataPoints = points
-        elapsedTime = Double(points.last?.x ?? 0.0)
+        elapsedTime = 30 // ✅ x축은 항상 30초로 고정
     }
 
     func startMeasurement() {
@@ -111,7 +125,7 @@ struct LineChartView: View {
                 t.invalidate()
                 timer = nil
                 isMeasuring = false
-                viewModel.stopMeasurement()
+                viewModel.isMeasurementFinished = true
             } else {
                 if let latest = viewModel.waveforms.last {
                     let yValue = Double(latest.lead1)
@@ -121,6 +135,8 @@ struct LineChartView: View {
         }
     }
 }
+
+// MARK: - Supporting Views
 
 struct LinePathView: Shape {
     var dataPoints: [CGPoint]
@@ -150,12 +166,12 @@ struct YAxisView: View {
 
     var body: some View {
         GeometryReader { geo in
-            let H = geo.size.height
+            let h = geo.size.height
             ForEach(0...5, id: \.self) { i in
                 let value = maxValue - (Double(i) * maxValue * 2 / 5)
                 Text("\(Int(value))")
-                    .font(.caption)
-                    .position(x: geo.size.width / 2, y: H * CGFloat(i) / 5)
+                    .font(.captionFont)
+                    .position(x: geo.size.width / 2, y: h * CGFloat(i) / 5)
             }
         }
     }
@@ -166,18 +182,17 @@ struct XAxisView: View {
     let xSpacing: CGFloat
 
     var body: some View {
-        if elapsedTime < 1.2 {
-            EmptyView().frame(height: 30)
-        } else {
-            let count = Int(elapsedTime)
-            HStack(spacing: 0) {
-                ForEach(1...count, id: \.self) { sec in
+        let totalSeconds = Int(ceil(elapsedTime))
+        HStack(spacing: 0) {
+            ForEach(0...totalSeconds, id: \.self) { sec in
+                if sec == 0 {
+                    EmptyView()
+                } else {
                     Text("\(sec)s")
-                        .font(.caption)
+                        .font(.captionFont)
                         .frame(width: xSpacing, alignment: .center)
                 }
             }
-            .frame(height: 30)
         }
     }
 }
@@ -185,21 +200,23 @@ struct XAxisView: View {
 struct GridLinesView: View {
     let maxValue: Double
     let chartSize: CGSize
+    let xSpacing: CGFloat // ✅ 추가
 
     var body: some View {
         Path { path in
             let height = chartSize.height
             let width = chartSize.width
             let horizontalSegments = 5
+
             for i in 0...horizontalSegments {
                 let y = height * CGFloat(i) / CGFloat(horizontalSegments)
                 path.move(to: CGPoint(x: 0, y: y))
                 path.addLine(to: CGPoint(x: width, y: y))
             }
 
-            let verticalLines = Int(width / 50)
+            let verticalLines = Int(width / xSpacing) // ✅ xSpacing 기반으로 조정
             for i in 0...verticalLines {
-                let x = CGFloat(i) * 50
+                let x = CGFloat(i) * xSpacing
                 path.move(to: CGPoint(x: x, y: 0))
                 path.addLine(to: CGPoint(x: x, y: height))
             }
@@ -208,11 +225,11 @@ struct GridLinesView: View {
     }
 }
 
+// MARK: - Preview
+
 #Preview {
-    StatefulPreviewWrapper(0.0) { value in
-        LineChartView(elapsedTime: value)
+    StatefulPreviewWrapper(30.0) { elapsed in
+        LineChartView(elapsedTime: elapsed, isRealtimeMode: false)
             .environmentObject(WaveformViewModel())
     }
 }
-
-

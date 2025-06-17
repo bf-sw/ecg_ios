@@ -30,7 +30,10 @@ struct DirectMeasureView: View {
                 .padding()
             
             SegmentedControlView(
-                selectedIndex: $viewModel.selectedMeasure,
+                selectedIndex: Binding(
+                    get: { viewModel.selectedLeadType == .one ? 0 : 1 },
+                    set: { viewModel.selectedLeadType = $0 == 0 ? .one : .six }
+                ),
                 segments: segments,
                 height: 60,
                 backgroundColor: Color.white,
@@ -41,8 +44,8 @@ struct DirectMeasureView: View {
             .pickerStyle(.segmented)
             .boxShadow()
             .padding()
-            .onChange(of: viewModel.selectedMeasure) { newValue in
-                viewModel.startMeasurement(type: newValue == 0 ? .one : .six)
+            .onChange(of: viewModel.selectedLeadType) { newValue in
+                viewModel.startMeasurement(type: newValue)
             }
 
             ZStack {
@@ -70,7 +73,7 @@ struct DirectMeasureView: View {
                             .boxShadow(color: Color.surfaceVariantColor)
                     }
                     
-                    if (viewModel.selectedMeasure != 0) {
+                    if (viewModel.selectedLeadType != .one) {
                         VStack {
                             ZStack {
                                 Image("img_device_back")
@@ -94,7 +97,7 @@ struct DirectMeasureView: View {
                     HStack {
                         Spacer()
                         Image(
-                            viewModel.selectedMeasure == 0 ?
+                            viewModel.selectedLeadType == .one ?
                             "img_measure_guide_1" : "img_measure_guide_6"
                         )
                         .scaledToFit()
@@ -110,7 +113,7 @@ struct DirectMeasureView: View {
         .navigationBarHidden(true)
         .onAppear() {
             viewModel.resetForNextSession()
-            viewModel.startMeasurement(type: viewModel.selectedMeasure == 0 ? .one : .six)
+            viewModel.startMeasurement(type: viewModel.selectedLeadType)
         }
         .onDisappear() {
             if (viewModel.triggerNavigation == false) {

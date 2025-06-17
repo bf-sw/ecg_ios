@@ -38,13 +38,15 @@ class WaveformViewModel: ObservableObject {
     @Published var isLead1Connected: Bool = false
     @Published var isLead2Connected: Bool = false
     @Published var batteryStatus: BatteryStatus = .unknown
-    @Published var selectedMeasure: Int = 0
+    @Published var selectedLeadType: LeadType = .one
     @Published var measureDate: Date = .now
+    @Published var isMeasurementFinished = false
     
-    private let maxWaveformCount = 100 // ✅ 유지할 최대 개수
+    private let maxWaveformCount = 250 * 30 // ✅ 유지할 최대 개수
     private var cancellables = Set<AnyCancellable>()
     private var hasTriggeredNavigation = false
     private var hasMovedToNextPage = false
+    
     
     init() {
         BluetoothManager.shared.eventPublisher
@@ -87,13 +89,14 @@ class WaveformViewModel: ObservableObject {
         let heartRateHighBits = (packet[8] >> 6) & 0b11 // 상위 2비트 추출
 
         // 최종 심박수 계산
-        let heartRate = (Int(heartRateHighBits) << 7) | hrLow.lowerBits(7)
+        let heartRate = ((Int(heartRateHighBits) << 7) | hrLow.lowerBits(7)) - 1
         
         // A 비트 (Lead 2 사용 여부)
         let moduleType = status.isBitSet(at: 6)
         
         // 유도 측정 방식: L 비트 (bit 5) - 0이면 1유도, 1이면 6유도
-        let leadType = LeadType(from: status.isBitSet(at: 5) == true ? 1 : 0)
+        // 사용 안함
+//        let leadType = LeadType(from: status.isBitSet(at: 5) == true ? 1 : 0)
         
         let lead1 = calculateLead(from: packet, startIndex: 2)
         let lead2 = calculateLead(from: packet, startIndex: 5)
@@ -104,7 +107,7 @@ class WaveformViewModel: ObservableObject {
             lead2: lead2,
             arrhythmiaCode: arrhythmia,
             moduleType: moduleType,
-            leadType: leadType,
+            leadType: selectedLeadType,
             isLead1Status: status.isBitSet(at: 4),
             isLead2Status: status.isBitSet(at: 3),
             isHeartbeatDetected: status.isBitSet(at: 2),
@@ -118,8 +121,8 @@ class WaveformViewModel: ObservableObject {
     func calculateLead(from packet: [UInt8], startIndex: Int) -> Int {
 
         let high = packet[startIndex].lowerBits(7)
-        let mid  = packet[startIndex + 1].lowerBits(7)
-        let low  = packet[startIndex + 2].lowerBits(7)
+        let mid = packet[startIndex + 1].lowerBits(7)
+        let low = packet[startIndex + 2].lowerBits(7)
         
         let raw = (high << 14) + (mid << 7) + low
         return raw - 0x100000
@@ -165,7 +168,7 @@ class WaveformViewModel: ObservableObject {
                                     return parsed.isLead1Status && parsed.isLead2Status
                                 }
                             }()
-
+                            
                             if shouldTrigger && !self.hasTriggeredNavigation && !self.hasMovedToNextPage {
                                 self.hasTriggeredNavigation = true
                                 self.triggerNavigation = true

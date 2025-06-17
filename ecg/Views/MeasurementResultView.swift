@@ -9,13 +9,14 @@ import SwiftUI
 
 struct MeasurementResultView: View {
     
+    @EnvironmentObject var viewModel: WaveformViewModel
     @State private var elapsedTime: Double = 30.0
     
     private let options: [ListOption] = [.download, .delete]
     
     var body: some View {
         VStack {
-            AppBarView(title: "직접 측정", rightContent: {
+            AppBarView(title: "\(viewModel.measureDate)", rightContent: {
                 AnyView(
                     Menu {
                         ForEach(options, id: \.self) { option in
@@ -31,7 +32,7 @@ struct MeasurementResultView: View {
             })
             
             HStack {
-                Text("1-유도")
+                Text(viewModel.leadType == .one ? "1-유도" : "2-유도")
                     .font(.subtitleFont)
                     .foregroundColor(.primaryColor)
                     .padding(.vertical, 8)
@@ -45,7 +46,7 @@ struct MeasurementResultView: View {
                     .font(.desciptionFont)
                 Spacer()
                 Image(uiImage: UIImage(named: "ic_bpm")!)
-                Text("80")
+                Text("\(viewModel.heartRate)")
                     .font(.headerFont)
                     .foregroundColor(.primaryColor)
                 Text("BPM")
@@ -58,10 +59,10 @@ struct MeasurementResultView: View {
             
             Spacer()
             
-//            LineChartView(elapsedTime: $elapsedTime)
-//                .boxShadow()
-//                .padding(.horizontal, 20)
-//                .padding(.bottom, 40)
+            LineChartView(elapsedTime: $elapsedTime, waveforms: viewModel.waveforms, isRealtimeMode: false)
+                .boxShadow()
+                .padding(.horizontal, 20)
+                .padding(.bottom, 40)
         }
         .background(Color.backgroundColor)
         .navigationBarHidden(true)

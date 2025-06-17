@@ -15,6 +15,7 @@ extension Font {
     static let popupHeaderFont = customFont(30, weight: .bold)
     static let popupTitleFont = customFont(28, weight: .bold)
     static let popupDescriptionFont = customFont(28, weight: .medium)
+    static let captionFont = customFont(10, weight: .medium)
     
     static func customFont(_ size: CGFloat, weight: Font.Weight = .regular) -> Font {
             let fontName: String
