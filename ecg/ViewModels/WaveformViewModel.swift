@@ -42,7 +42,7 @@ class WaveformViewModel: ObservableObject {
     @Published var measureDate: Date = .now
     @Published var isMeasurementFinished = false
     
-    private let maxWaveformCount = 250 * 30 // ✅ 유지할 최대 개수
+    private let maxCount = 250 * 30 // ✅ 유지할 최대 개수
     private var cancellables = Set<AnyCancellable>()
     private var hasTriggeredNavigation = false
     private var hasMovedToNextPage = false
@@ -149,8 +149,8 @@ class WaveformViewModel: ObservableObject {
                             self.waveforms.append(parsed)
 
                             // 오래된 데이터 제거
-                            if self.waveforms.count > self.maxWaveformCount {
-                                self.waveforms.removeFirst(self.waveforms.count - self.maxWaveformCount)
+                            if self.waveforms.count > self.maxCount {
+                                self.waveforms.removeFirst(self.waveforms.count - self.maxCount)
                             }
 
                             // 상태 업데이트
