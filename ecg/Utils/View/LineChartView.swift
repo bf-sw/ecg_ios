@@ -1,178 +1,120 @@
-//
-//  LineChartView.swift
-//  ecg
-//
-//  Created by insung on 4/30/25.
-//
-
 import SwiftUI
 
 struct LineChartView: View {
-    @EnvironmentObject var viewModel: WaveformViewModel
-    @Binding var elapsedTime: Double
+    var title: String
+    var showAxis: Bool = true
     @Binding var dataPoints: [CGPoint]
+    var chartHeight: CGFloat = 300
 
-    @State private var zoomScale: CGFloat = 1.0
-    @State private var lastZoomScale: CGFloat = 1.0
+    let yMin: CGFloat = -5000
+    let yMax: CGFloat = 5000
+    let yGridCount: Int = 5
+    let xGridSpacing: CGFloat = 100
+    let yLabelWidth: CGFloat = 40
 
-    let measurementDuration: Double = 30.0
-    let maxValue: Double = 5000    // Y축: ±5000 범위
-    let xSpacing: CGFloat = 50.0
+    @State private var baseSpacing: CGFloat = 1.0
+    @GestureState private var magnifyBy: CGFloat = 1.0
 
     var body: some View {
-        GeometryReader { geometry in
-            let effectiveXSpacing = xSpacing * zoomScale
-            let fullChartWidth = CGFloat(Int(ceil(measurementDuration))) * effectiveXSpacing
-            let graphHeight = geometry.size.height
-            let measuredWidth = CGFloat(max(Int(ceil(elapsedTime)), 1)) * effectiveXSpacing
-            let visibleWidth = geometry.size.width
+        let currentSpacing = max(0.5, min(baseSpacing * magnifyBy, 5.0)) // 제한 줌 배율
 
-            HStack(alignment: .top, spacing: 0) {
-                YAxisView(maxValue: maxValue)
-                    .frame(width: 40, height: graphHeight)
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.caption)
+                .padding(.leading, 4)
 
-                ScrollViewReader { scrollProxy in
+            HStack(spacing: 0) {
+                if showAxis {
+                    // Y축 라벨
+                    VStack(spacing: 0) {
+                        ForEach(yLabelValues(), id: \.self) { value in
+                            Text("\(Int(value))")
+                                .font(.caption2)
+                                .frame(maxWidth: .infinity, alignment: .trailing)
+                                .frame(height: chartHeight / CGFloat(yGridCount))
+                        }
+                    }
+                    .frame(width: yLabelWidth)
+                }
+
+                ScrollViewReader { proxy in
                     ScrollView(.horizontal, showsIndicators: false) {
-                        VStack(spacing: 0) {
-                            Color.clear.frame(width: 0, height: 0).id("GraphStart")
+                        let chartWidth = CGFloat(max(dataPoints.count, 1)) * currentSpacing
 
-                            ZStack {
-                                GridLinesView(maxValue: maxValue,
-                                              chartSize: CGSize(width: fullChartWidth, height: graphHeight),
-                                              xSpacing: effectiveXSpacing)
-
-                                LinePathView(dataPoints: dataPoints,
-                                             xSpacing: effectiveXSpacing,
-                                             maxValue: maxValue)
-                                    .stroke(Color.surfaceColor, lineWidth: 3)
+                        HStack(spacing: 0) {
+                            Canvas { context, size in
+                                drawGrid(context: &context, size: size, spacing: currentSpacing)
+                                drawLine(context: &context, size: size, spacing: currentSpacing)
                             }
-                            .frame(width: measuredWidth, height: graphHeight)
-                            .id("GraphContent")
+                            .frame(width: chartWidth, height: chartHeight)
 
-                            XAxisView(elapsedTime: elapsedTime, xSpacing: effectiveXSpacing)
-                                .frame(width: measuredWidth, height: 30)
+                            Color.clear
+                                .frame(width: 1, height: 1)
+                                .id(dataPoints.count - 1)
                         }
                     }
-                    .onChange(of: Int(elapsedTime * 10)) { _ in
+                    .frame(height: chartHeight)
+                    .onChange(of: dataPoints.count) { newValue in
                         withAnimation {
-                            if measuredWidth > visibleWidth {
-                                scrollProxy
-                                    .scrollTo("GraphContent", anchor: .trailing)
-                            } else {
-                                scrollProxy
-                                    .scrollTo("GraphStart", anchor: .leading)
-                            }
+                            proxy.scrollTo(newValue - 1, anchor: .trailing)
                         }
                     }
-                    .gesture(MagnificationGesture()
-                        .onChanged { value in
-                            zoomScale = lastZoomScale * value
-                        }
-                        .onEnded { _ in
-                            lastZoomScale = zoomScale
-                        }
+                    .gesture(
+                        MagnificationGesture()
+                            .updating($magnifyBy) { value, state, _ in
+                                state = value
+                            }
+                            .onEnded { value in
+                                let newScale = baseSpacing * value
+                                baseSpacing = max(0.5, min(newScale, 5.0))
+                            }
                     )
                 }
             }
         }
-        .padding(.vertical, 40)
-        .padding(.horizontal)
     }
-}
 
-// MARK: - Supporting Views
+    func yLabelValues() -> [CGFloat] {
+        let step = (yMax - yMin) / CGFloat(yGridCount)
+        return (0...yGridCount).map { yMax - CGFloat($0) * step }
+    }
 
-struct LinePathView: Shape {
-    var dataPoints: [CGPoint]
-    let xSpacing: CGFloat
-    let maxValue: Double
+    func drawGrid(context: inout GraphicsContext, size: CGSize, spacing: CGFloat) {
+        let yStep = size.height / CGFloat(yGridCount)
+        let yLines = stride(from: 0, through: size.height, by: yStep)
+        let xLines = stride(from: 0, through: size.width, by: xGridSpacing * spacing)
 
-    func path(in rect: CGRect) -> Path {
         var path = Path()
-        guard let first = dataPoints.first else { return path }
-        let scaleY = rect.height / CGFloat(maxValue * 2)
-        let offset = first.x
+        for y in yLines {
+            path.move(to: CGPoint(x: 0, y: y))
+            path.addLine(to: CGPoint(x: size.width, y: y))
+        }
 
-        let startY = rect.height / 2 - CGFloat(first.y) * scaleY
-        path.move(to: CGPoint(x: 0, y: startY))
+        for x in xLines {
+            path.move(to: CGPoint(x: x, y: 0))
+            path.addLine(to: CGPoint(x: x, y: size.height))
+        }
 
-        for point in dataPoints {
-            let x = CGFloat(point.x - offset) * xSpacing
-            let y = rect.height / 2 - CGFloat(point.y) * scaleY
+        context.stroke(path, with: .color(.gray.opacity(0.3)), lineWidth: 1)
+    }
+    
+    func drawLine(context: inout GraphicsContext, size: CGSize, spacing: CGFloat) {
+        guard dataPoints.count > 1 else { return }
+
+        let scaleY = size.height / (yMax - yMin)
+
+        var path = Path()
+        let first = dataPoints[0]
+        let x0 = CGFloat(0)
+        let y0 = size.height - ((CGFloat(first.y) - yMin) * scaleY)
+        path.move(to: CGPoint(x: x0, y: y0))
+
+        for (i, point) in dataPoints.enumerated() {
+            let x = CGFloat(i) * spacing
+            let y = size.height - ((CGFloat(point.y) - yMin) * scaleY)
             path.addLine(to: CGPoint(x: x, y: y))
         }
-        return path
+
+        context.stroke(path, with: .color(.customSurface), lineWidth: 2)
     }
 }
-
-struct YAxisView: View {
-    let maxValue: Double
-
-    var body: some View {
-        GeometryReader { geo in
-            let h = geo.size.height
-            ForEach(0...5, id: \.self) { i in
-                let value = maxValue - (Double(i) * maxValue * 2 / 5)
-                Text("\(Int(value))")
-                    .font(.captionFont)
-                    .position(x: geo.size.width / 2, y: h * CGFloat(i) / 5)
-            }
-        }
-    }
-}
-
-struct XAxisView: View {
-    let elapsedTime: Double
-    let xSpacing: CGFloat
-
-    var body: some View {
-        let totalSeconds = Int(ceil(elapsedTime))
-        HStack(spacing: 0) {
-            ForEach(0...totalSeconds, id: \.self) { sec in
-                if sec == 0 {
-                    EmptyView()
-                } else {
-                    Text("\(sec)s")
-                        .font(.captionFont)
-                        .frame(width: xSpacing, alignment: .center)
-                }
-            }
-        }
-    }
-}
-
-struct GridLinesView: View {
-    let maxValue: Double
-    let chartSize: CGSize
-    let xSpacing: CGFloat
-
-    var body: some View {
-        Path { path in
-            let height = chartSize.height
-            let width = chartSize.width
-            let horizontalSegments = 5
-
-            for i in 0...horizontalSegments {
-                let y = height * CGFloat(i) / CGFloat(horizontalSegments)
-                path.move(to: CGPoint(x: 0, y: y))
-                path.addLine(to: CGPoint(x: width, y: y))
-            }
-
-            let verticalLines = Int(width / xSpacing)
-            for i in 0...verticalLines {
-                let x = CGFloat(i) * xSpacing
-                path.move(to: CGPoint(x: x, y: 0))
-                path.addLine(to: CGPoint(x: x, y: height))
-            }
-        }
-        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-    }
-}
-
-
-//#Preview {
-//    StatefulPreviewWrapper(30.0) { elapsed in
-//        LineChartView(elapsedTime: elapsed, isRealtimeMode: false)
-//            .environmentObject(WaveformViewModel())
-//    }
-//}

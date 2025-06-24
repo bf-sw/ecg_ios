@@ -8,17 +8,45 @@
 import SwiftUI
 
 struct MeasurementResultView: View {
-    
+    @EnvironmentObject var router: Router
     @EnvironmentObject var viewModel: WaveformViewModel
-    @State private var elapsedTime: Double = 30.0
-    @State private var dataPoints: [CGPoint] = []
-    @State private var allDataPoints: [[CGPoint]] = Array(repeating: [], count: 6)
     
     private let options: [ListOption] = [.download, .delete]
     
     var body: some View {
+        let waveforms = viewModel.waveforms
+        let leadType = viewModel.selectedLeadType
+        
+        let lead1 = waveforms.enumerated().map {
+            CGPoint(x: Double($0.offset), y: Double($0.element.lead1))
+        }
+
+        let lead2 = waveforms.map { Double($0.lead2) }
+        let lead3 = waveforms.map { $0.calculateLead3() }
+        let avf   = waveforms.map { $0.calculateAVF() }
+        let avl   = waveforms.map { $0.calculateAVL() }
+        let avr   = waveforms.map { $0.calculateAVR() }
+
+        let lead2Points = zip(0..., lead2).map {
+            CGPoint(x: Double($0.0), y: $0.1)
+        }
+        let lead3Points = zip(0..., lead3).map {
+            CGPoint(x: Double($0.0), y: $0.1)
+        }
+        let avfPoints   = zip(0..., avf).map {
+            CGPoint(x: Double($0.0), y: $0.1)
+        }
+        let avlPoints   = zip(0..., avl).map {
+            CGPoint(x: Double($0.0), y: $0.1)
+        }
+        let avrPoints   = zip(0..., avr).map {
+            CGPoint(x: Double($0.0), y: $0.1)
+        }
+        
         VStack {
-            AppBarView(title: "\(viewModel.measureDate)", rightContent: {
+            AppBarView(title: "\(viewModel.measureDate)", backAction: {
+                router.popToRoot()
+            }, rightContent: {
                 AnyView(
                     Menu {
                         ForEach(options, id: \.self) { option in
@@ -34,7 +62,7 @@ struct MeasurementResultView: View {
             })
             
             HStack {
-                Text(viewModel.selectedLeadType == .one ? "1-유도" : "6-유도")
+                Text(leadType == .one ? "1-유도" : "6-유도")
                     .font(.subtitleFont)
                     .foregroundColor(.primaryColor)
                     .padding(.vertical, 8)
@@ -61,95 +89,43 @@ struct MeasurementResultView: View {
             
             Spacer()
             
-            if viewModel.selectedLeadType == .one {
-                LineChartView(elapsedTime: $elapsedTime, dataPoints: $dataPoints)
-                    .boxShadow()
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 40)
-            } else if viewModel.selectedLeadType == .six {
+            if leadType == .one {
                 GeometryReader { geometry in
-                    let chartHeight = (
-                        geometry.size.height - 32 - 40
-                    ) / 3  // 3행, spacing 16*2, padding 40 고려
+                    LineChartView(
+                        title: GraphType.none.rawValue,
+                        dataPoints: .constant(lead1),
+                        chartHeight: geometry.size.height - 140)
+                    .padding(20)
+                    .boxShadow()
+                }
+                .padding(.horizontal)
+            } else if leadType == .six {
+                GeometryReader { geometry in
+                    let height = (geometry.size.height - 32 - 40  - 140) / 3
                     LazyVGrid(
                         columns: Array(
                             repeating: GridItem(.flexible(), spacing: 16),
                             count: 2
                         ),
-                        spacing: 16
+                        spacing: 12
                     ) {
-                        ForEach(0..<6, id: \.self) { index in
-                            LineChartView(elapsedTime: $elapsedTime, dataPoints: $allDataPoints[index])
-                                .frame(height: chartHeight)
-                                .boxShadow()
-                        }
+                        LineChartView(title: GraphType.one.rawValue, dataPoints: .constant(lead1), chartHeight: height)
+                        LineChartView(title: GraphType.two.rawValue, dataPoints: .constant(lead2Points), chartHeight: height)
+                        LineChartView(title: GraphType.three.rawValue, dataPoints: .constant(lead3Points), chartHeight: height)
+                        LineChartView(title: GraphType.avr.rawValue, dataPoints: .constant(avrPoints), chartHeight: height)
+                        LineChartView(title: GraphType.avl.rawValue, dataPoints: .constant(avlPoints), chartHeight: height)
+                        LineChartView(title: GraphType.avf.rawValue, dataPoints: .constant(avfPoints), chartHeight: height)
                     }
-                    .padding(.horizontal, 10)
-                    .padding(.bottom, 20)
+                    .padding(20)
+                    .boxShadow()
                 }
+                .padding(.horizontal)
             }
         }
         .background(Color.backgroundColor)
         .navigationBarHidden(true)
-        .onAppear() {
-            setEntireDataFromWaveforms()
-        }
     }
     
-    func setEntireDataFromWaveforms() {
-        // 최대 7500개로 제한 (30초, 1초당 250개)
-        let maxWaveforms = 250 * 30
-        let trimmedWaveforms = Array(viewModel.waveforms.prefix(maxWaveforms))
-        let leadType = viewModel.selectedLeadType
-        
-        if leadType == .one {
-            
-            let points = trimmedWaveforms.enumerated().map { index, wf in
-                let x = Double(index) * (1.0 / 250.0) // = 0.004초 간격
-                return CGPoint(x: x, y: Double(wf.lead1))
-            }
-            
-            dataPoints = points
-        } else if leadType == .six {
-            // 6리드 사용하는 경우
-            for i in 0..<6 {
-                allDataPoints[i] = trimmedWaveforms
-                    .enumerated()
-                    .map { index, wf in
-                        let x = Double(index) * (1.0 / 250.0)
-                        let y: Double
-
-                        switch i {
-                        case 0: y = Double(wf.lead1)
-                        case 1: y = Double(wf.lead2)
-                        case 2: y = calculationLead3(waveform: wf)
-                        case 3: y = calculationAVR(waveform: wf)
-                        case 4: y = calculationAVL(waveform: wf)
-                        case 5: y = calculationAVF(waveform: wf)
-                        default: y = 0
-                        }
-
-                        return CGPoint(x: x, y: y)
-                    }
-            }
-        }
-    }
-    
-    func calculationLead3(waveform: Waveform) -> Double {
-        return Double(waveform.lead2) - Double(waveform.lead1)
-    }
-    
-    func calculationAVR(waveform: Waveform) -> Double {
-        return -(Double(waveform.lead1) + Double(waveform.lead2))/2
-    }
-    
-    func calculationAVL(waveform: Waveform) -> Double {
-        return Double(waveform.lead1) - Double(waveform.lead2)/2
-    }
-    
-    func calculationAVF(waveform: Waveform) -> Double {
-        return Double(waveform.lead2) - Double(waveform.lead1)/2
-    }
     
     // 옵션 선택 적용
     private func updateSelectedOption(to option: ListOption) {
@@ -163,5 +139,5 @@ struct MeasurementResultView: View {
 
 #Preview {
     MeasurementResultView()
-        .environmentObject(WaveformViewModel())
+        .environmentObject(WaveformViewModel.previewSample(type: .one))
 }

@@ -8,7 +8,17 @@
 import Foundation
 import Combine
 
-struct Waveform {
+enum GraphType: String {
+    case none = "◼︎ electrocardiogram"
+    case one = "◼︎ Lead I"
+    case two = "◼︎ Lead II"
+    case three = "◼︎ Lead III"
+    case avr = "◼︎ aVR"
+    case avl = "◼︎ aVL"
+    case avf = "◼︎ aVF"
+}
+
+struct Waveform: Equatable {
     let heartRate: Int
     let lead1: Int
     let lead2: Int
@@ -27,6 +37,22 @@ struct Waveform {
             📟 Waveform HeartRate: \(heartRate) Lead1: \(lead1) Lead2: \(lead2) ArrhythmiaCode: \(arrhythmiaCode) ModuleType: \(moduleType) LeadType: \(leadType) Lead1Status: \(isLead1Status) Lead2Status: \(isLead2Status) isHeartbeatDetected: \(isHeartbeatDetected) Battery Status: \(batteryStatus.rawValue)
             """
     }
+    
+    func calculateLead3() -> Double {
+        return Double(lead2) - Double(lead1)
+    }
+    
+    func calculateAVR() -> Double {
+        return -(Double(lead1) + Double(lead2))/2
+    }
+    
+    func calculateAVL() -> Double {
+        return Double(lead1) - Double(lead2)/2
+    }
+    
+    func calculateAVF() -> Double {
+        return Double(lead2) - Double(lead1)/2
+    }
 }
 
 class WaveformViewModel: ObservableObject {
@@ -42,10 +68,28 @@ class WaveformViewModel: ObservableObject {
     @Published var measureDate: Date = .now
     @Published var isMeasurementFinished = false
     
-    private let maxCount = 250 * 30 // ✅ 유지할 최대 개수
+    @Published var lead1Points: [CGPoint] = []
+    @Published var lead2Points: [CGPoint] = []
+    @Published var lead3Points: [CGPoint] = []
+    @Published var avfPoints: [CGPoint] = []
+    @Published var avlPoints: [CGPoint] = []
+    @Published var avrPoints: [CGPoint] = []
+
+    private let maxCount = 7800
+    private let bufferSize = 50
+    
+    private var pendingBuffer = [CGPoint]()
+    private let bufferQueue = DispatchQueue(label: "graph.buffer.queue")
+
+    private var dataIndex: Int = 0
     private var cancellables = Set<AnyCancellable>()
     private var hasTriggeredNavigation = false
     private var hasMovedToNextPage = false
+    
+    var elapsedTime: Double = 0.0
+    private var timer: Timer?
+    private let measurementDuration: Double = 30.0
+    private let timerInterval: Double = 0.2
     
     
     init() {
@@ -140,11 +184,11 @@ class WaveformViewModel: ObservableObject {
             if let startIndex = bytes.firstIndex(of: header),
                startIndex + packetLength <= bytes.count {
 
-                let potentialPacket = Array(bytes[startIndex..<startIndex + packetLength])
+                let packet = Array(bytes[startIndex..<startIndex + packetLength])
 
                 // 패킷의 마지막 바이트가 footer인지 확인
-                if potentialPacket.last == footer {
-                    if let parsed = parseSingleWaveform(potentialPacket) {
+                if packet.last == footer {
+                    if let parsed = parseSingleWaveform(packet) {
                         DispatchQueue.main.async {
                             self.waveforms.append(parsed)
 
@@ -172,6 +216,11 @@ class WaveformViewModel: ObservableObject {
                             if shouldTrigger && !self.hasTriggeredNavigation && !self.hasMovedToNextPage {
                                 self.hasTriggeredNavigation = true
                                 self.triggerNavigation = true
+                                self.startTimer()
+                            }
+                            
+                            if shouldTrigger {
+                                self.addGraphPoints(parsed)
                             }
                         }
 
@@ -181,15 +230,55 @@ class WaveformViewModel: ObservableObject {
                         // 파싱 실패한 경우 해당 헤더부터 다음 바이트까지 제거하고 재시도
                         bytes.removeFirst(startIndex + 1)
                     }
-                } else {
-                    // 헤더는 있으나 유효한 패킷이 아닌 경우 건너뜀
-                    bytes.removeFirst(startIndex + 1)
                 }
             } else {
                 // 헤더 자체가 없거나 남은 데이터가 부족할 경우 루프 종료
                 break
             }
         }
+    }
+    
+    private func addGraphPoints(_ waveform: Waveform) {
+        let x = Double(dataIndex)
+        dataIndex += 1
+
+        let points = (
+            lead1: CGPoint(x: x, y: Double(waveform.lead1)),
+            lead2: CGPoint(x: x, y: Double(waveform.lead2)),
+            lead3: CGPoint(x: x, y: waveform.calculateLead3()),
+            avf:   CGPoint(x: x, y: waveform.calculateAVF()),
+            avl:   CGPoint(x: x, y: waveform.calculateAVL()),
+            avr:   CGPoint(x: x, y: waveform.calculateAVR())
+        )
+
+        DispatchQueue.main.async {
+            self.append(&self.lead1Points, points.lead1)
+            self.append(&self.lead2Points, points.lead2)
+            self.append(&self.lead3Points, points.lead3)
+            self.append(&self.avfPoints,   points.avf)
+            self.append(&self.avlPoints,   points.avl)
+            self.append(&self.avrPoints,   points.avr)
+        }
+    }
+    
+    private func append(_ array: inout [CGPoint], _ point: CGPoint) {
+        array.append(point)
+        if array.count > maxCount {
+            array.removeFirst(array.count - maxCount)
+        }
+    }
+    
+    func resetData() {
+        waveforms.removeAll()
+        lead1Points.removeAll()
+        lead2Points.removeAll()
+        lead3Points.removeAll()
+        avfPoints.removeAll()
+        avlPoints.removeAll()
+        avrPoints.removeAll()
+
+        dataIndex = 0
+        isMeasurementFinished = false
     }
     
     func markNavigationComplete() {
@@ -206,6 +295,26 @@ class WaveformViewModel: ObservableObject {
 }
 
 extension WaveformViewModel {
+    
+    func startTimer() {
+        elapsedTime = 0
+        timer?.invalidate()
+        isMeasurementFinished = false
+        timer = Timer
+            .scheduledTimer(
+                withTimeInterval: timerInterval,
+                repeats: true
+            ) { t in
+                self.elapsedTime += self.timerInterval
+                if self.elapsedTime >= self.measurementDuration {
+                    self.isMeasurementFinished = true
+                    self.stopMeasurement()
+                }
+            }
+    }
+    
+    
+    
     func startMeasurement(type: LeadType) {
         waveforms.removeAll()
         BluetoothManager.shared
@@ -216,8 +325,39 @@ extension WaveformViewModel {
     }
     
     func stopMeasurement() {
+        timer?.invalidate()
+        timer = nil
         BluetoothManager.shared
             .sendCommand(command: Constants.Bluetooth.MEASURE_STOP)
         print("📡 측정 종료 커맨드 전송됨")
     }
+}
+
+extension WaveformViewModel {
+    // 테스트 데이터
+    static func previewSample(type: LeadType = .six) -> WaveformViewModel {
+            let vm = WaveformViewModel()
+            vm.selectedLeadType = type
+
+            for i in 0..<7500 {
+                let lead1 = Int(1000 * sin(Double(i) * 0.01))
+                let lead2 = Int(1000 * cos(Double(i) * 0.01))
+                let wf = Waveform(
+                    heartRate: 80,
+                    lead1: lead1,
+                    lead2: lead2,
+                    arrhythmiaCode: 0,
+                    moduleType: true,
+                    leadType: type,
+                    isLead1Status: true,
+                    isLead2Status: true,
+                    isHeartbeatDetected: false,
+                    batteryStatus: .full,
+                    timestamp: .now
+                )
+                vm.waveforms.append(wf)
+            }
+
+            return vm
+        }
 }
