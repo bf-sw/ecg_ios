@@ -8,6 +8,9 @@
 import SwiftUI
 
 struct LoadingView: View {
+    var title: String = ""
+    var subtitle: String = ""
+    
     var body: some View {
         ZStack {
             // 어두운 반투명 배경
@@ -16,19 +19,19 @@ struct LoadingView: View {
             
             VStack(spacing: 60) {
                 ProgressView()
-                    .progressViewStyle(CircularProgressViewStyle(tint: Color.orange))
+                    .progressViewStyle(CircularProgressViewStyle(tint: .customPrimary))
                     .scaleEffect(2.5)
                 
                 VStack(spacing: 4) {
-                    Text("기기와 연결 중입니다.")
+                    Text(title)
                         .font(.subtitleFont)
                         .foregroundColor(.surfaceColor)
-                    Text("잠시만 기다려 주세요.")
+                    Text(subtitle)
                         .font(.subtitleFont)
                         .foregroundColor(.surfaceColor)
                 }
             }
-            .frame(minWidth: 430, minHeight: 250)
+            .frame(minWidth: 420, minHeight: 240)
             .padding(40)
             .background(Color.white)
             .cornerRadius(20)

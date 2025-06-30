@@ -14,6 +14,8 @@ struct MeasurementListView: View {
     var onTap: (() -> Void)? = nil
     
     var body: some View {
+        let waveform = item.waveforms.last
+        
         HStack {
             if (viewModel.listMode == .selection) {
                 Image(
@@ -25,27 +27,28 @@ struct MeasurementListView: View {
             }
             VStack(alignment: .leading) {
                 HStack {
-                    Text("1-유도")
+                    Text(waveform?.leadType.name ?? "")
                         .font(.desciptionFont)
                         .foregroundColor(.primaryColor)
                         .padding(.vertical, 8)
-                        .padding(.horizontal, 16)
+                        .padding(.horizontal, 12)
                         .background(Color.primaryColor.opacity(0.2))
                         .cornerRadius(10)
-                    Text("심방세동")
+                    Text(item.waveforms.arrhythmiaTypeName)
                         .font(.titleFont)
                     Spacer()
                     Image(uiImage: UIImage(named: "ic_bpm")!)
-                    Text("80")
-                        .font(.desciptionFont)
-                    Text("BPM")
+                    Text(waveform?.heartRate == -1 ? "---" : "\(waveform?.heartRate ?? 0) BPM")
                         .font(.desciptionFont)
                 }
-                Text("2026년 08월 10일 02:12")
+                Spacer()
+                
+                Text(item.waveforms.measureDate)
                     .font(.desciptionFont)
                 
             }
         }
+        .frame(height: 100)
         .padding(24)
         .boxShadow()
         .onTapGesture {
@@ -59,5 +62,5 @@ struct MeasurementListView: View {
 }
 
 #Preview {
-    MeasurementListView(viewModel: MeasurementListViewModel(), item: MeasurementItem())
+    MeasurementListView(viewModel: MeasurementListViewModel(), item: MeasurementItem(id: UUID().uuidString))
 }

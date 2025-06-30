@@ -34,9 +34,12 @@ struct RecordView: View {
             })
             if selectedOption == .none {
                 Spacer()
-//                emptyMeasurement()
-                measurementList()
-                    .padding(.vertical, 24)
+                if viewModel.items.isEmpty {
+                    emptyMeasurement()
+                } else {
+                    measurementList()
+                        .padding(.vertical, 24)
+                }
                 Spacer()
             } else {
                 Text(selectedOption.title)
@@ -95,6 +98,9 @@ struct RecordView: View {
                 .boxShadow(color: .backgroundColor)
             }
         }
+        .onAppear() {
+            viewModel.loadSavedMeasurementItems()
+        }
         .ignoresSafeArea(.all, edges: .bottom)
         .background(Color.backgroundColor)
         .navigationBarHidden(true)
@@ -121,9 +127,9 @@ struct RecordView: View {
             ], spacing: 24) {
                 ForEach(viewModel.items) { item in
                     MeasurementListView(viewModel: viewModel, item: item) {
-                        router.push(to: .result)
+                        router.push(to: .result(item: item))
                     }
-                    .padding(.horizontal, 12)
+                    .padding(.horizontal, 6)
                 }
             }
         }
@@ -148,6 +154,11 @@ struct RecordView: View {
                 .boxRounded()
                 
                 Button("직접 측정") {
+                    if BluetoothManager.shared.connectedDevice == nil {
+                        router.selectedTab = .home
+                        router.push(to: .bluetooth)
+                        return
+                    }
                     router.selectedTab = .home
                     router.push(to: .directMeasure)
                 }

@@ -21,7 +21,7 @@ struct DirectMeasureView: View {
         VStack {
             AppBarView(title: "직접 측정", rightContent: {
                 AnyView(
-                    imageBatteryStatus()
+                    viewModel.batteryStatus.imageBatteryStatus()
                 )
             })
             
@@ -112,46 +112,20 @@ struct DirectMeasureView: View {
         .background(Color.backgroundColor)
         .navigationBarHidden(true)
         .onAppear() {
-            viewModel.resetForNextSession()
+            print("여기로 오닝")
             viewModel.startMeasurement(type: viewModel.selectedLeadType)
         }
         .onDisappear() {
             if (viewModel.triggerNavigation == false) {
+                print("스탑")
                 viewModel.stopMeasurement()
             }
         }
         .onReceive(viewModel.$triggerNavigation) { push in
             if push {
-                viewModel.markNavigationComplete() // ✅ 중복 방지
+                viewModel.markNavigationComplete()
                 router.push(to: .measuring)
             }
-        }
-    }
-    
-    func imageBatteryStatus() -> Image? {
-        
-        var imageName = ""
-        
-        switch viewModel.batteryStatus {
-        case .empty:
-            imageName = "ic_battery0"
-            break
-        case .level1:
-            imageName = "ic_battery1"
-            break
-        case .level2:
-            imageName = "ic_battery2"
-            break
-        case .full:
-            imageName = "ic_battery3"
-            break
-        default:
-            break
-        }
-        if imageName.isEmpty == false {
-            return Image(uiImage: UIImage(named: imageName)!)
-        } else {
-            return nil
         }
     }
 }

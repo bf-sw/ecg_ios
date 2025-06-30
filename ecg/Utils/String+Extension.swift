@@ -11,4 +11,9 @@ extension String {
     func hasDeviceCode() -> Bool {
         return self.hasPrefix(Device.ecg.code)
     }
+    
+    func fileName() -> String? {
+        let name = self.split(separator: "/").last.map(String.init) ?? ""
+        return name.removingPercentEncoding
+    }
 }

@@ -7,9 +7,11 @@
 
 import Foundation
 import Combine
+import Swift
+import SwiftUI
 
 
-enum LeadType: Int {
+enum LeadType: Int, Codable {
     case one = 0
     case six = 1
     
@@ -20,9 +22,16 @@ enum LeadType: Int {
         default: self = .one
         }
     }
+    
+    var name: String {
+        switch self {
+        case .one: return "직접 1-유도"
+        case .six: return "직접 6-유도"
+        }
+    }
 }
 
-enum BatteryStatus: Int {
+enum BatteryStatus: Int, Codable {
     case empty = 0
     case level1 = 1
     case level2 = 2
@@ -36,6 +45,33 @@ enum BatteryStatus: Int {
         case 2: self = .level2
         case 3: self = .full
         default: self = .unknown
+        }
+    }
+    
+    func imageBatteryStatus() -> Image? {
+        
+        var imageName = ""
+        
+        switch self {
+        case .empty:
+            imageName = "ic_battery0"
+            break
+        case .level1:
+            imageName = "ic_battery1"
+            break
+        case .level2:
+            imageName = "ic_battery2"
+            break
+        case .full:
+            imageName = "ic_battery3"
+            break
+        default:
+            break
+        }
+        if imageName.isEmpty == false {
+            return Image(uiImage: UIImage(named: imageName)!)
+        } else {
+            return nil
         }
     }
 }

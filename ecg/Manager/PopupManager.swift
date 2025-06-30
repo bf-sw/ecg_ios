@@ -17,6 +17,10 @@ class PopupManager: ObservableObject {
     // 로딩 상태
     @Published var isLoading: Bool = false
 
+    // 로딩 문구
+    @Published var loadingTitle: String?
+    @Published var loadingSubtitle: String?
+    
     struct PopupConfig {
         var title: String
         var messageHeader: String
@@ -58,7 +62,9 @@ class PopupManager: ObservableObject {
     }
 
     // 로딩 제어
-    func showLoading() {
+    func showLoading(title: String = "", subtitle: String = "") {
+        loadingTitle = title
+        loadingSubtitle = subtitle
         isLoading = true
     }
 

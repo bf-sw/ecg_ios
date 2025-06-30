@@ -7,7 +7,8 @@
 
 import SwiftUI
 
-struct MeasurementItem: Identifiable, Equatable {
-    let id: UUID = UUID()
+struct MeasurementItem: Identifiable, Equatable, Hashable {
+    let id: String
     var isSelected: Bool = false
+    var waveforms: [Waveform] = []
 }

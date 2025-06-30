@@ -16,8 +16,11 @@ struct PopupModifier: ViewModifier {
 
             if manager.isLoading {
                 Color.black.opacity(0.3).ignoresSafeArea()
-                LoadingView()
-                    .transition(.opacity)
+                LoadingView(
+                    title: manager.loadingTitle ?? "",
+                    subtitle: manager.loadingSubtitle ?? ""
+                )
+                .transition(.opacity)
             }
             
             if let config = manager.popup {

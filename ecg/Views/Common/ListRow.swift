@@ -7,7 +7,6 @@
 
 import SwiftUI
 
-
 struct ListRow: View {
     var title: String
     var onTap: () -> Void

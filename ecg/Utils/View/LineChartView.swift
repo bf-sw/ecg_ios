@@ -12,12 +12,15 @@ struct LineChartView: View {
     let xGridSpacing: CGFloat = 100
     let yLabelWidth: CGFloat = 40
 
-    @State private var baseSpacing: CGFloat = 1.0
+    @State private var baseSpacing: CGFloat = 0.4
     @GestureState private var magnifyBy: CGFloat = 1.0
 
     var body: some View {
         let currentSpacing = max(0.5, min(baseSpacing * magnifyBy, 5.0)) // 제한 줌 배율
-
+        let rowHeight = (chartHeight.isFinite && chartHeight > 0 && yGridCount > 0)
+            ? chartHeight / CGFloat(yGridCount)
+            : 60
+        
         VStack(alignment: .leading, spacing: 4) {
             Text(title)
                 .font(.caption)
@@ -31,7 +34,7 @@ struct LineChartView: View {
                             Text("\(Int(value))")
                                 .font(.caption2)
                                 .frame(maxWidth: .infinity, alignment: .trailing)
-                                .frame(height: chartHeight / CGFloat(yGridCount))
+                                .frame(height: rowHeight)
                         }
                     }
                     .frame(width: yLabelWidth)
@@ -46,19 +49,21 @@ struct LineChartView: View {
                                 drawGrid(context: &context, size: size, spacing: currentSpacing)
                                 drawLine(context: &context, size: size, spacing: currentSpacing)
                             }
-                            .frame(width: chartWidth, height: chartHeight)
+                            .frame(width: chartWidth, height: max(1, chartHeight))
 
                             Color.clear
                                 .frame(width: 1, height: 1)
                                 .id(dataPoints.count - 1)
                         }
-                    }
-                    .frame(height: chartHeight)
-                    .onChange(of: dataPoints.count) { newValue in
-                        withAnimation {
-                            proxy.scrollTo(newValue - 1, anchor: .trailing)
+                        .onChange(of: dataPoints.count) { newValue in
+                            DispatchQueue.main.async {
+                                withAnimation {
+                                    proxy.scrollTo(newValue - 1, anchor: .trailing)
+                                }
+                            }
                         }
                     }
+                    .frame(height: max(1, chartHeight))
                     .gesture(
                         MagnificationGesture()
                             .updating($magnifyBy) { value, state, _ in

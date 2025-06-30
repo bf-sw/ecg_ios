@@ -25,7 +25,7 @@ struct HomeView: View {
                     .foregroundColor(.primaryColor)
                 Spacer()
                 if (bluetoothViewModel.connectedDevice != nil) {
-                    imageBatteryStatus()
+                    deviceStatusViewModel.deviceStatus?.batteryStatus.imageBatteryStatus()
                 }
             }
             .padding(20)
@@ -107,39 +107,7 @@ struct HomeView: View {
             }
         }
     }
-    
-    func imageBatteryStatus() -> Image? {
-        guard let status = deviceStatusViewModel.deviceStatus else {
-            return nil
-        }
-        var imageName = ""
-        if status.isCharging == true {
-            imageName = "ic_battery_charge"
-        } else {
-            switch status.batteryStatus {
-            case .empty:
-                imageName = "ic_battery0"
-                break
-            case .level1:
-                imageName = "ic_battery1"
-                break
-            case .level2:
-                imageName = "ic_battery2"
-                break
-            case .full:
-                imageName = "ic_battery3"
-                break
-            default:
-                break
-            }
-        }
-        if imageName.isEmpty == false {
-            return Image(uiImage: UIImage(named: imageName)!)
-        } else {
-            return nil
-        }
-    }
-    
+     
     func connectedView() -> some View {
         
         return VStack(spacing: 8) {

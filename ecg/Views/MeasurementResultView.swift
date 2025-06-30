@@ -9,13 +9,14 @@ import SwiftUI
 
 struct MeasurementResultView: View {
     @EnvironmentObject var router: Router
-    @EnvironmentObject var viewModel: WaveformViewModel
+//    @EnvironmentObject var viewModel: WaveformViewModel
+    let item: MeasurementItem
     
     private let options: [ListOption] = [.download, .delete]
     
     var body: some View {
-        let waveforms = viewModel.waveforms
-        let leadType = viewModel.selectedLeadType
+        let waveforms = item.waveforms
+        let leadType = waveforms.last?.leadType ?? .one
         
         let lead1 = waveforms.enumerated().map {
             CGPoint(x: Double($0.offset), y: Double($0.element.lead1))
@@ -23,9 +24,9 @@ struct MeasurementResultView: View {
 
         let lead2 = waveforms.map { Double($0.lead2) }
         let lead3 = waveforms.map { $0.calculateLead3() }
-        let avf   = waveforms.map { $0.calculateAVF() }
-        let avl   = waveforms.map { $0.calculateAVL() }
-        let avr   = waveforms.map { $0.calculateAVR() }
+        let avf = waveforms.map { $0.calculateAVF() }
+        let avl = waveforms.map { $0.calculateAVL() }
+        let avr = waveforms.map { $0.calculateAVR() }
 
         let lead2Points = zip(0..., lead2).map {
             CGPoint(x: Double($0.0), y: $0.1)
@@ -33,18 +34,18 @@ struct MeasurementResultView: View {
         let lead3Points = zip(0..., lead3).map {
             CGPoint(x: Double($0.0), y: $0.1)
         }
-        let avfPoints   = zip(0..., avf).map {
+        let avfPoints = zip(0..., avf).map {
             CGPoint(x: Double($0.0), y: $0.1)
         }
-        let avlPoints   = zip(0..., avl).map {
+        let avlPoints = zip(0..., avl).map {
             CGPoint(x: Double($0.0), y: $0.1)
         }
-        let avrPoints   = zip(0..., avr).map {
+        let avrPoints = zip(0..., avr).map {
             CGPoint(x: Double($0.0), y: $0.1)
         }
         
         VStack {
-            AppBarView(title: "\(viewModel.measureDate)", backAction: {
+            AppBarView(title: waveforms.measureDate, backAction: {
                 router.popToRoot()
             }, rightContent: {
                 AnyView(
@@ -62,21 +63,21 @@ struct MeasurementResultView: View {
             })
             
             HStack {
-                Text(leadType == .one ? "1-유도" : "6-유도")
+                Text(leadType.name)
                     .font(.subtitleFont)
                     .foregroundColor(.primaryColor)
                     .padding(.vertical, 8)
                     .padding(.horizontal, 16)
                     .background(Color.primaryColor.opacity(0.2))
                     .cornerRadius(10)
-                Text("심방세동")
+                Text("\(waveforms.arrhythmiaTypeName)")
                     .font(.titleFont)
                 Image(uiImage: UIImage(named: "ic_info")!)
-                Text("심전도")
+                Text("\(waveforms.arrhythmiaTypeDescription)")
                     .font(.desciptionFont)
                 Spacer()
                 Image(uiImage: UIImage(named: "ic_bpm")!)
-                Text(viewModel.heartRate == -1 ? "---" : "\(viewModel.heartRate)")
+                Text(waveforms.last?.heartRate == -1 ? "---" : "\(waveforms.last?.heartRate ?? 0)")
                     .font(.headerFont)
                     .foregroundColor(.primaryColor)
                 Text("BPM")
@@ -126,18 +127,19 @@ struct MeasurementResultView: View {
         .navigationBarHidden(true)
     }
     
-    
     // 옵션 선택 적용
     private func updateSelectedOption(to option: ListOption) {
         if (option == .download) {
-            print("download ")
+            let waveforms = item.waveforms
+            DataManager.shared.exportCSVFile(from: waveforms)
         } else {
             print("option : \(option)")
         }
     }
 }
 
-#Preview {
-    MeasurementResultView()
-        .environmentObject(WaveformViewModel.previewSample(type: .one))
-}
+
+//#Preview {
+//    MeasurementResultView()
+//        .environmentObject(WaveformViewModel.previewSample(type: .one))
+//}

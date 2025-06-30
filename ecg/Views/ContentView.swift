@@ -24,27 +24,29 @@ struct ContentView: View {
                     NavigationStack(path: $router.path) {
                         HomeView()
                             .navigationDestination(for: Route.self) { route in
-                                if route == .bluetooth {
+                                switch route {
+                                case .bluetooth:
                                     BluetoothView()
-                                } else if route == .patchMeasure {
+                                case .patchMeasure:
                                     PatchMeasureView()
-                                } else if route == .directMeasure {
+                                case .directMeasure:
                                     DirectMeasureView()
                                         .environmentObject(waveViewModel)
-                                } else if route == .measuring {
+                                case .measuring:
                                     MeasuringView()
                                         .environmentObject(waveViewModel)
-                                } else if route == .caution {
+                                case .caution:
                                     CautionView()
-                                } else if route == .manual {
+                                case .manual:
                                     ManualView()
-                                } else if route == .eventGuide {
+                                case .eventGuide:
                                     EventGudieView()
-                                } else if route == .connectionGuide {
+                                case .connectionGuide:
                                     ConnectionGuideView()
-                                } else if route == .result {
-                                    MeasurementResultView()
-                                        .environmentObject(waveViewModel)
+                                case .result(let item):
+                                    MeasurementResultView(item: item)
+                                default:
+                                    EmptyView()
                                 }
                             }
                     }
@@ -52,9 +54,11 @@ struct ContentView: View {
                     NavigationStack(path: $router.path) {
                         RecordView()
                             .navigationDestination(for: Route.self) { route in
-                                if route == .result {
-                                    MeasurementResultView()
-                                        .environmentObject(waveViewModel)
+                                switch route {
+                                case .result(let item):
+                                    MeasurementResultView(item: item)
+                                default:
+                                    EmptyView()
                                 }
                             }
                     }
@@ -72,7 +76,7 @@ struct ContentView: View {
         }
         .onChange(of: bluetoothManager.bluetoothState) { state in
             if state == .connecting {
-                PopupManager.shared.showLoading()
+                PopupManager.shared.showLoading(title: "기기와 연결 중입니다.", subtitle: "잠시만 기다려 주세요.")
             } else if state == .disconnected {
                 self.router.popToRoot()
                 ToastManager.shared.show(message: "블루투스 연결이 해제되었습니다.")

@@ -18,22 +18,22 @@ enum GraphType: String {
     case avf = "◼︎ aVF"
 }
 
-struct Waveform: Equatable {
+struct Waveform: Equatable, Codable, Hashable {
     let heartRate: Int
     let lead1: Int
     let lead2: Int
-    let arrhythmiaCode: UInt8
+    let arrhythmiaCode: Int
     let moduleType: Bool
     let leadType: LeadType
     let isLead1Status: Bool
     let isLead2Status: Bool
     let isHeartbeatDetected: Bool
     let batteryStatus: BatteryStatus
-    let timestamp: Date
+    var measureDate: Date = .now
     
     var description: String {
             """
-            🕒 Timestamp: \(timestamp)
+            🕒 MeasureDate: \(measureDate)
             📟 Waveform HeartRate: \(heartRate) Lead1: \(lead1) Lead2: \(lead2) ArrhythmiaCode: \(arrhythmiaCode) ModuleType: \(moduleType) LeadType: \(leadType) Lead1Status: \(isLead1Status) Lead2Status: \(isLead2Status) isHeartbeatDetected: \(isHeartbeatDetected) Battery Status: \(batteryStatus.rawValue)
             """
     }
@@ -60,6 +60,7 @@ class WaveformViewModel: ObservableObject {
     @Published var triggerNavigation = false
     
     @Published var heartRate: Int = 0
+    @Published var arrhythmiaCode: Int = 0
     @Published var leadType: LeadType = .one
     @Published var isLead1Connected: Bool = false
     @Published var isLead2Connected: Bool = false
@@ -83,8 +84,6 @@ class WaveformViewModel: ObservableObject {
 
     private var dataIndex: Int = 0
     private var cancellables = Set<AnyCancellable>()
-    private var hasTriggeredNavigation = false
-    private var hasMovedToNextPage = false
     
     var elapsedTime: Double = 0.0
     private var timer: Timer?
@@ -126,12 +125,12 @@ class WaveformViewModel: ObservableObject {
         }
 
         let hrLow = packet[1]
-        let arrhythmia = packet[8]
         let status = packet[9]
 
         // Byte 9: bit 7, bit 6 → 심박수 상위 2비트
         let heartRateHighBits = (packet[8] >> 6) & 0b11 // 상위 2비트 추출
-
+        let arrhythmiaCode = Int(packet[8] & 0x3F)
+        
         // 최종 심박수 계산
         let heartRate = ((Int(heartRateHighBits) << 7) | hrLow.lowerBits(7)) - 1
         
@@ -149,14 +148,13 @@ class WaveformViewModel: ObservableObject {
             heartRate: heartRate,
             lead1: lead1,
             lead2: lead2,
-            arrhythmiaCode: arrhythmia,
+            arrhythmiaCode: arrhythmiaCode,
             moduleType: moduleType,
             leadType: selectedLeadType,
             isLead1Status: status.isBitSet(at: 4),
             isLead2Status: status.isBitSet(at: 3),
             isHeartbeatDetected: status.isBitSet(at: 2),
             batteryStatus: BatteryStatus(from: status.lowerBits(2)),
-            timestamp: .now
         )
     }
     
@@ -199,6 +197,7 @@ class WaveformViewModel: ObservableObject {
 
                             // 상태 업데이트
                             self.heartRate = parsed.heartRate
+                            self.arrhythmiaCode = parsed.arrhythmiaCode
                             self.isLead1Connected = parsed.isLead1Status
                             self.isLead2Connected = parsed.isLead2Status
                             self.batteryStatus = parsed.batteryStatus
@@ -213,8 +212,7 @@ class WaveformViewModel: ObservableObject {
                                 }
                             }()
                             
-                            if shouldTrigger && !self.hasTriggeredNavigation && !self.hasMovedToNextPage {
-                                self.hasTriggeredNavigation = true
+                            if shouldTrigger && !self.triggerNavigation {
                                 self.triggerNavigation = true
                                 self.startTimer()
                             }
@@ -246,18 +244,18 @@ class WaveformViewModel: ObservableObject {
             lead1: CGPoint(x: x, y: Double(waveform.lead1)),
             lead2: CGPoint(x: x, y: Double(waveform.lead2)),
             lead3: CGPoint(x: x, y: waveform.calculateLead3()),
-            avf:   CGPoint(x: x, y: waveform.calculateAVF()),
-            avl:   CGPoint(x: x, y: waveform.calculateAVL()),
-            avr:   CGPoint(x: x, y: waveform.calculateAVR())
+            avf: CGPoint(x: x, y: waveform.calculateAVF()),
+            avl: CGPoint(x: x, y: waveform.calculateAVL()),
+            avr: CGPoint(x: x, y: waveform.calculateAVR())
         )
 
         DispatchQueue.main.async {
             self.append(&self.lead1Points, points.lead1)
             self.append(&self.lead2Points, points.lead2)
             self.append(&self.lead3Points, points.lead3)
-            self.append(&self.avfPoints,   points.avf)
-            self.append(&self.avlPoints,   points.avl)
-            self.append(&self.avrPoints,   points.avr)
+            self.append(&self.avfPoints, points.avf)
+            self.append(&self.avlPoints, points.avl)
+            self.append(&self.avrPoints, points.avr)
         }
     }
     
@@ -282,15 +280,7 @@ class WaveformViewModel: ObservableObject {
     }
     
     func markNavigationComplete() {
-        hasMovedToNextPage = true
-        hasTriggeredNavigation = false
         triggerNavigation = false
-    }
-
-    
-    // 필요 시 외부에서 다시 리셋 가능
-    func resetForNextSession() {
-        hasMovedToNextPage = false
     }
 }
 
@@ -312,8 +302,6 @@ extension WaveformViewModel {
                 }
             }
     }
-    
-    
     
     func startMeasurement(type: LeadType) {
         waveforms.removeAll()
@@ -353,7 +341,6 @@ extension WaveformViewModel {
                     isLead2Status: true,
                     isHeartbeatDetected: false,
                     batteryStatus: .full,
-                    timestamp: .now
                 )
                 vm.waveforms.append(wf)
             }

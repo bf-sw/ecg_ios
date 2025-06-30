@@ -12,9 +12,6 @@ struct MeasuringView: View {
     @EnvironmentObject var router: Router
     @EnvironmentObject var viewModel: WaveformViewModel
     
-    @State private var zoomScale: CGFloat = 1.0
-    @State private var lastZoomScale: CGFloat = 1.0
-    
     var body: some View {
         VStack {
             AppBarView(title: "직접 측정")
@@ -41,14 +38,17 @@ struct MeasuringView: View {
         }
         .onChange(of: viewModel.isMeasurementFinished) { finished in
             if finished {
-                router.push(to: .result)
+                DataManager.shared.saveData(viewModel.waveforms)
+                let timestamp = Int(viewModel.waveforms.last?.measureDate.timeIntervalSince1970 ?? 0)
+                let key = "waveform_\(timestamp)"
+                router.push(to: .result(item: MeasurementItem(
+                    id: key,
+                    waveforms: viewModel.waveforms)
+                ))
             }
         }
         .onAppear {
             viewModel.resetData()
-        }
-        .onDisappear {
-            viewModel.stopMeasurement()
         }
     }
         
@@ -116,6 +116,7 @@ struct MeasuringView: View {
         let disconnected = leadType == .one ? viewModel.isLead1Connected == false : viewModel.isLead1Connected == false || viewModel.isLead2Connected == false
         
         if disconnected {
+            viewModel.markNavigationComplete()
             viewModel.stopMeasurement()
             PopupManager.shared.showPopup(title: "측정 실패",
                                           messageHeader: "다음 내용을 확인해 보세요.",
