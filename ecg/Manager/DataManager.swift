@@ -10,6 +10,7 @@ import SwiftUI
 class DataManager {
     static let shared = DataManager()
     private var documentDelegate: UIDocumentPickerDelegate?
+    private let dataKey = "waveform_keys"
     
     private func makeCSV(from waveforms: [Waveform]) -> String {
         var csv = "Index,Lead1,Lead2,Lead3,AVR,AVL,AVF\n"
@@ -50,38 +51,51 @@ class DataManager {
         }
     }
     
+    func deleteData(for keys: [String]) {
+        var savedKeys = getAllDataKeys()
+        for key in keys {
+            UserDefaults.standard.removeObject(forKey: key)
+            savedKeys.removeAll { $0 == key }
+            print("🗑️ 삭제 완료: \(key)")
+        }
+        UserDefaults.standard.set(savedKeys, forKey: dataKey)
+    }
+    
     func appendSavedDataKeys(_ key: String) {
-        var keys = UserDefaults.standard.stringArray(forKey: "waveform_keys") ?? []
+        var keys = UserDefaults.standard.stringArray(forKey: dataKey) ?? []
         if !keys.contains(key) {
             keys.append(key)
-            UserDefaults.standard.set(keys, forKey: "waveform_keys")
+            UserDefaults.standard.set(keys, forKey: dataKey)
         }
     }
     
     func getAllDataKeys() -> [String] {
-        return UserDefaults.standard.stringArray(forKey: "waveform_keys") ?? []
+        return UserDefaults.standard.stringArray(forKey: dataKey) ?? []
     }
     
-    func exportCSVFile(from waveforms: [Waveform]) {
-        let csv = makeCSV(from: waveforms)
-        guard let fileName = waveforms.last?.measureDate.fileName() else {
-            return
+    func exportCSVFiles(from items: [MeasurementItem]) {
+        var fileURLs: [URL] = []
+
+        for item in items {
+            guard let last = item.waveforms.last else { continue }
+            let fileName = last.measureDate.fileName()
+            let csv = makeCSV(from: item.waveforms)
+            let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
+
+            do {
+                try csv.write(to: tempURL, atomically: true, encoding: .utf8)
+                fileURLs.append(tempURL)
+            } catch {
+                print("❌ CSV 저장 실패: \(error)")
+            }
         }
 
-        // 임시 파일로 먼저 저장
-        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
-            
-        do {
-            try csv.write(to: tempURL, atomically: true, encoding: .utf8)
-            presentShareController(from: tempURL)
-        } catch {
-            PopupManager.shared.hideLoading()
-            ToastManager.shared.show(message: "저장에 실패하였습니다.\n\(error)")
-            return
+        if !fileURLs.isEmpty {
+            presentShareController(from: fileURLs)
         }
     }
 
-    func presentShareController(from url: URL) {
+    func presentShareController(from urls: [URL]) {
         guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
               let rootVC = windowScene.windows.first(where: { $0.isKeyWindow })?.rootViewController else {
             return
@@ -91,12 +105,9 @@ class DataManager {
         while let presentedVC = topVC.presentedViewController {
             topVC = presentedVC
         }
-        let activityVC = UIActivityViewController(
-            activityItems: [url],
-            applicationActivities: nil
-        )
-            
-        // iPad 대응: popover 위치 설정
+
+        let activityVC = UIActivityViewController(activityItems: urls, applicationActivities: nil)
+
         if let popover = activityVC.popoverPresentationController {
             popover.sourceView = topVC.view
             popover.sourceRect = CGRect(
@@ -107,6 +118,7 @@ class DataManager {
             )
             popover.permittedArrowDirections = []
         }
+
         DispatchQueue.main.async {
             topVC.present(activityVC, animated: true)
         }
