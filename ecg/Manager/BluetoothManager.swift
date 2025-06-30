@@ -24,10 +24,14 @@ enum BluetoothState {
 }
 
 class BluetoothManager: NSObject, ObservableObject {
+    
     static let shared = BluetoothManager()
     
     private var centralManager: CBCentralManager!
     private var writeCharacteristic: CBCharacteristic?
+    
+    private var reconnectTimeoutTimer: Timer?
+    private let reconnectTimeoutInterval: TimeInterval = 5.0
 
     @EnvironmentObject var router: Router
     @Published var discoveredDevices: [CBPeripheral] = []
@@ -105,6 +109,20 @@ class BluetoothManager: NSObject, ObservableObject {
         let data = Data(packet)
         peripheral.writeValue(data, for: characteristic, type: .withResponse)
     }
+    
+    private func startReconnectTimeoutTimer(for peripheral: CBPeripheral) {
+        reconnectTimeoutTimer?.invalidate()
+        reconnectTimeoutTimer = Timer.scheduledTimer(withTimeInterval: reconnectTimeoutInterval, repeats: false) { [weak self] _ in
+            guard let self = self else { return }
+            print("⏰ 자동 재연결 타임아웃 발생")
+            self.centralManager.cancelPeripheralConnection(peripheral)
+            self.bluetoothState = .failed
+            PopupManager.shared.hideLoading()
+            
+            ToastManager.shared.show(message: "자동 연결에 실패했습니다.\n다시 시도해 주세요.")
+            UserDefaultBLE.clearConnectedDevice()
+        }
+    }
 }
 
 // MARK: - CBCentralManagerDelegate
@@ -114,6 +132,16 @@ extension BluetoothManager: CBCentralManagerDelegate {
             print("Bluetooth is not available")
         } else {
             print("Bluetooth is ready")
+            
+            // 자동 재연결 시도
+            if let uuid = UserDefaultBLE.loadConnectedUUID(),
+               let peripheral = central.retrievePeripherals(withIdentifiers: [uuid]).first {
+                   print("🔁 최근 연결 기기 재연결 시도: \(peripheral.name ?? "Unknown")")
+                   connect(to: peripheral)
+                   startReconnectTimeoutTimer(for: peripheral)
+            } else {
+                startScan() // 없으면 일반 스캔
+            }
         }
     }
 
@@ -138,11 +166,15 @@ extension BluetoothManager: CBCentralManagerDelegate {
         peripheral.delegate = self
         peripheral.discoverServices(nil)
         
+        reconnectTimeoutTimer?.invalidate()
+
         bluetoothState = .connected
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: {
             self.connectedDevice = peripheral
             PopupManager.shared.hideLoading()
         })
+        
+        UserDefaultBLE.saveConnectedDevice(peripheral.identifier)
     }
 
     func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
@@ -201,7 +233,7 @@ extension BluetoothManager: CBPeripheralDelegate {
             let dateFormatter = DateFormatter()
             dateFormatter.dateFormat = "mm:ss:SSSS"
             dateFormatter.string(from: .now)
-            print("🔢 \(dateFormatter.string(from: .now)) HEX: \(hexString)")
+//            print("🔢 \(dateFormatter.string(from: .now)) HEX: \(hexString)")
         }
         
         if let firstByte = value.first {
