@@ -7,9 +7,7 @@
 
 import Foundation
 import Combine
-import Swift
 import SwiftUI
-
 
 enum LeadType: Int, Codable {
     case one = 0
@@ -76,7 +74,7 @@ enum BatteryStatus: Int, Codable {
     }
 }
 
-struct DeviceStatus {
+struct DeviceStatus: Equatable {
     let major: Int
     let minor: Int
     let eventCount: Int
@@ -114,7 +112,6 @@ class DeviceStatusViewModel: ObservableObject {
 
     // 데이터 파싱
     func parseReceivedData(_ data: Data) {
-        print("parseReceivedVersion data : \(data.count)")
         guard data.count >= 7 else {
             print("❌ 데이터 길이 부족")
             return

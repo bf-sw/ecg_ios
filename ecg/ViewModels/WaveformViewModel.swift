@@ -8,55 +8,8 @@
 import Foundation
 import Combine
 
-enum GraphType: String {
-    case none = "◼︎ electrocardiogram"
-    case one = "◼︎ Lead I"
-    case two = "◼︎ Lead II"
-    case three = "◼︎ Lead III"
-    case avr = "◼︎ aVR"
-    case avl = "◼︎ aVL"
-    case avf = "◼︎ aVF"
-}
-
-struct Waveform: Equatable, Codable, Hashable {
-    let heartRate: Int
-    let lead1: Int
-    let lead2: Int
-    let arrhythmiaCode: Int
-    let moduleType: Bool
-    let leadType: LeadType
-    let isLead1Status: Bool
-    let isLead2Status: Bool
-    let isHeartbeatDetected: Bool
-    let batteryStatus: BatteryStatus
-    var measureDate: Date = .now
-    
-    var description: String {
-            """
-            🕒 MeasureDate: \(measureDate)
-            📟 Waveform HeartRate: \(heartRate) Lead1: \(lead1) Lead2: \(lead2) ArrhythmiaCode: \(arrhythmiaCode) ModuleType: \(moduleType) LeadType: \(leadType) Lead1Status: \(isLead1Status) Lead2Status: \(isLead2Status) isHeartbeatDetected: \(isHeartbeatDetected) Battery Status: \(batteryStatus.rawValue)
-            """
-    }
-    
-    func calculateLead3() -> Double {
-        return Double(lead2) - Double(lead1)
-    }
-    
-    func calculateAVR() -> Double {
-        return -(Double(lead1) + Double(lead2))/2
-    }
-    
-    func calculateAVL() -> Double {
-        return Double(lead1) - Double(lead2)/2
-    }
-    
-    func calculateAVF() -> Double {
-        return Double(lead2) - Double(lead1)/2
-    }
-}
-
 class WaveformViewModel: ObservableObject {
-    @Published var waveforms: [Waveform] = []
+    @Published var waveforms: [WaveformModel] = []
     @Published var triggerNavigation = false
     
     @Published var heartRate: Int = 0
@@ -104,7 +57,7 @@ class WaveformViewModel: ObservableObject {
     }
 
     // 데이터 파싱
-    func parseSingleWaveform(_ packet: [UInt8]) -> Waveform? {
+    func parseSingleWaveform(_ packet: [UInt8]) -> WaveformModel? {
         
         let header = packet.first
         let footer = packet.last
@@ -144,7 +97,7 @@ class WaveformViewModel: ObservableObject {
         let lead1 = calculateLead(from: packet, startIndex: 2)
         let lead2 = calculateLead(from: packet, startIndex: 5)
         
-        return Waveform(
+        return WaveformModel(
             heartRate: heartRate,
             lead1: lead1,
             lead2: lead2,
@@ -236,7 +189,7 @@ class WaveformViewModel: ObservableObject {
         }
     }
     
-    private func addGraphPoints(_ waveform: Waveform) {
+    private func addGraphPoints(_ waveform: WaveformModel) {
         let x = Double(dataIndex)
         dataIndex += 1
 
@@ -305,18 +258,14 @@ extension WaveformViewModel {
     
     func startMeasurement(type: LeadType) {
         waveforms.removeAll()
-        BluetoothManager.shared
-            .sendCommand(
-                command: type == .one ? Constants.Bluetooth.MEASURE_START_1 : Constants.Bluetooth.MEASURE_START_6
-            )
+        PacketManager.shared.startMeasurement(from: type)
         print("📡 측정 시작 커맨드 전송됨")
     }
     
     func stopMeasurement() {
         timer?.invalidate()
         timer = nil
-        BluetoothManager.shared
-            .sendCommand(command: Constants.Bluetooth.MEASURE_STOP)
+        PacketManager.shared.stopMeasurement()
         print("📡 측정 종료 커맨드 전송됨")
     }
 }
@@ -330,7 +279,7 @@ extension WaveformViewModel {
             for i in 0..<7500 {
                 let lead1 = Int(1000 * sin(Double(i) * 0.01))
                 let lead2 = Int(1000 * cos(Double(i) * 0.01))
-                let wf = Waveform(
+                let wf = WaveformModel(
                     heartRate: 80,
                     lead1: lead1,
                     lead2: lead2,

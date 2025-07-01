@@ -41,7 +41,7 @@ struct MeasuringView: View {
                 DataManager.shared.saveData(viewModel.waveforms)
                 let timestamp = Int(viewModel.waveforms.last?.measureDate.timeIntervalSince1970 ?? 0)
                 let key = "waveform_\(timestamp)"
-                router.push(to: .result(item: MeasurementItem(
+                router.push(to: .result(item: MeasurementModel(
                     id: key,
                     waveforms: viewModel.waveforms)
                 ))

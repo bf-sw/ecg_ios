@@ -11,7 +11,7 @@ class DataManager {
     static let shared = DataManager()
     private var documentDelegate: UIDocumentPickerDelegate?
     
-    private func makeCSV(from waveforms: [Waveform]) -> String {
+    private func makeCSV(from waveforms: [WaveformModel]) -> String {
         var csv = "Index,Lead1,Lead2,Lead3,AVR,AVL,AVF\n"
         for (index, waveform) in waveforms.enumerated() {
             let lead3 = waveform.calculateLead3()
@@ -23,7 +23,7 @@ class DataManager {
         return csv
     }
     
-    func saveData(_ waveforms: [Waveform]) {
+    func saveData(_ waveforms: [WaveformModel]) {
         guard let last = waveforms.last else { return }
 
         let timestamp = Int(last.measureDate.timeIntervalSince1970)
@@ -38,11 +38,11 @@ class DataManager {
         }
     }
     
-    func loadData(for key: String) -> [Waveform]? {
+    func loadData(for key: String) -> [WaveformModel]? {
         guard let data = UserDefaults.standard.data(forKey: key) else { return nil }
         do {
             let decoder = JSONDecoder()
-            let waveforms = try decoder.decode([Waveform].self, from: data)
+            let waveforms = try decoder.decode([WaveformModel].self, from: data)
             return waveforms
         } catch {
             print("❌ 불러오기 실패: \(error)")
@@ -62,7 +62,7 @@ class DataManager {
         return UserDefaults.standard.stringArray(forKey: "waveform_keys") ?? []
     }
     
-    func exportCSVFile(from waveforms: [Waveform]) {
+    func exportCSVFile(from waveforms: [WaveformModel]) {
         let csv = makeCSV(from: waveforms)
         guard let fileName = waveforms.last?.measureDate.fileName() else {
             return

@@ -45,6 +45,8 @@ struct ContentView: View {
                                     ConnectionGuideView()
                                 case .result(let item):
                                     MeasurementResultView(item: item)
+                                case .loadEvent:
+                                    EventLoadView()
                                 default:
                                     EmptyView()
                                 }
@@ -80,9 +82,6 @@ struct ContentView: View {
             } else if state == .disconnected {
                 self.router.popToRoot()
                 ToastManager.shared.show(message: "블루투스 연결이 해제되었습니다.")
-//                PopupManager.shared.showPopup(title: "블루투스 연결이 해제되었습니다.", confirmTitle: "확인", onConfirm: {
-//                    self.router.popToRoot()
-//                })
             }
         }
         

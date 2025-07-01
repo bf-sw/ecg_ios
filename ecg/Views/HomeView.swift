@@ -8,10 +8,9 @@
 import SwiftUI
 
 struct HomeView: View {
-    @StateObject private var bluetoothViewModel = BluetoothViewModel()
+    @StateObject var bluetoothManager = BluetoothManager.shared
     @StateObject private var deviceStatusViewModel = DeviceStatusViewModel()
     @EnvironmentObject var router: Router
-    @EnvironmentObject var manager: PopupManager
     
     var body: some View {
         VStack {
@@ -24,7 +23,7 @@ struct HomeView: View {
                     .font(.titleFont)
                     .foregroundColor(.primaryColor)
                 Spacer()
-                if (bluetoothViewModel.connectedDevice != nil) {
+                if (bluetoothManager.connectedDevice != nil) {
                     deviceStatusViewModel.deviceStatus?.batteryStatus.imageBatteryStatus()
                 }
             }
@@ -32,7 +31,7 @@ struct HomeView: View {
             
             HStack(spacing: 16) {
                 // 기기 연결 카드
-                if bluetoothViewModel.connectedDevice != nil {
+                if bluetoothManager.connectedDevice != nil {
                     connectedView()
                 } else {
                     disconectedView()
@@ -102,10 +101,21 @@ struct HomeView: View {
         }
         .background(Color.backgroundColor)
         .onAppear() {
-            if bluetoothViewModel.connectedDevice != nil {
-                bluetoothViewModel.setDeviceTime()
+            if bluetoothManager.connectedDevice != nil {
+                PacketManager.shared.setDeviceTime()
             }
         }
+        .onChange(of: deviceStatusViewModel.deviceStatus) { status in
+            if let count = status?.eventCount, count > 0 {
+                PopupManager.shared.showPopup(
+                    title: "심전도를 측정하셨나요?",
+                    messageHeader: "연결한 기기에 심전도 측정 기록이 있어요.\n측정 기록을 불러올까요?",
+                    confirmTitle: "확인", cancelTitle: "다음에 하기", onConfirm: {
+                        router.push(to: .loadEvent)
+                    })
+            }
+        }
+        .popup()
     }
      
     func connectedView() -> some View {
@@ -119,11 +129,11 @@ struct HomeView: View {
                     .foregroundColor(.blueColor)
                     .background(Color.backgroundBlueColor)
                     .cornerRadius(10)
-                Text(bluetoothViewModel.connectedDevice?.name ?? "DEVICE NAME_1234")
+                Text(bluetoothManager.connectedDevice?.name ?? "DEVICE NAME_1234")
                     .font(.titleFont)
                 Spacer()
                 Button("연결 해제") {
-                    bluetoothViewModel.disconnect()
+                    bluetoothManager.disconnect()
                 }
                 .font(.desciptionFont)
                 .padding(.vertical, 8)

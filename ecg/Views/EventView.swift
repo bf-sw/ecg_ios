@@ -11,6 +11,7 @@ struct EventView: View {
     @EnvironmentObject var router: Router
     @State private var selectedOption: ListOption = .none
     @StateObject var viewModel = MeasurementListViewModel()
+    @StateObject var bluetoothManager = BluetoothManager.shared
     
     private let options: [ListOption] = [.load, .download, .delete]
     
@@ -24,8 +25,13 @@ struct EventView: View {
                         ForEach(options, id: \.self) { option in
                             Button(option.name) {
                                 if option == .load {
-                                    ToastManager.shared.show(message: "연결된 기기가 없습니다.")
-                                    return
+                                    if bluetoothManager.connectedDevice != nil {
+                                        router.push(to: .loadEvent)
+                                    } else {
+                                        ToastManager.shared
+                                            .show(message: "연결된 기기가 없습니다.")
+                                        return
+                                    }
                                 }
                                 updateSelectedOption(to: option)
                             }
@@ -38,9 +44,12 @@ struct EventView: View {
             })
             if selectedOption == .none {
                 Spacer()
-//                emptyEvent()
-                measurementList()
-                    .padding(.vertical, 24)
+                if viewModel.items.isEmpty {
+                    emptyEvent()
+                } else {
+                    eventList()
+                        .padding(.vertical, 24)
+                }
                 Spacer()
             } else {
                 Text(selectedOption.title)
@@ -63,8 +72,7 @@ struct EventView: View {
                 }
                 .padding()
                 
-                // 리스트 추가
-                measurementList()
+                eventList()
                 
                 Spacer()
                 HStack {
@@ -84,7 +92,7 @@ struct EventView: View {
                             .cornerRadius(10)
                     }
                     Button(action: {
-
+                        // 다운로드 시작
                     }) {
                         Text(selectedOption.name)
                             .frame(width: 160)
@@ -99,6 +107,9 @@ struct EventView: View {
                 .padding()
                 .boxShadow(color: .backgroundColor)
             }
+        }
+        .onAppear() {
+            
         }
         .ignoresSafeArea(.all, edges: .bottom)
         .background(Color.backgroundColor)
@@ -118,22 +129,23 @@ struct EventView: View {
     }
     
     // 리스트
-    func measurementList() -> some View {
+    func eventList() -> some View {
         return ScrollView {
             LazyVGrid(columns: [
                 GridItem(.flexible()),
                 GridItem(.flexible())
             ], spacing: 24) {
                 ForEach(viewModel.items) { item in
-                    MeasurementListView(viewModel: viewModel, item: item)
-                        .padding(.horizontal, 12)
+                    MeasurementListView(viewModel: viewModel, item: item) {
+                        router.push(to: .result(item: item))
+                    }
+                    .padding(.horizontal, 6)
                 }
             }
         }
         .padding(.horizontal, 16)
     }
     
-    // 기록 없음
     func emptyEvent() -> some View {
         return VStack {
             Text("이벤트 기록이 없어요.")
@@ -144,8 +156,6 @@ struct EventView: View {
     }
 }
 
-
 #Preview {
     EventView()
 }
-

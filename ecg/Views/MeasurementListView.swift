@@ -9,7 +9,7 @@ import SwiftUI
 
 struct MeasurementListView: View {
     @ObservedObject var viewModel: MeasurementListViewModel
-    let item: MeasurementItem
+    let item: MeasurementModel
     
     var onTap: (() -> Void)? = nil
     
@@ -62,5 +62,5 @@ struct MeasurementListView: View {
 }
 
 #Preview {
-    MeasurementListView(viewModel: MeasurementListViewModel(), item: MeasurementItem(id: UUID().uuidString))
+    MeasurementListView(viewModel: MeasurementListViewModel(), item: MeasurementModel(id: UUID().uuidString))
 }

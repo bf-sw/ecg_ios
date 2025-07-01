@@ -13,6 +13,8 @@ import Combine
 enum BluetoothEvent {
     case deviceStatus(Data)
     case waveform(Data)
+    case savedEvent(Data)
+    case emptyEvent(Data)
 }
 
 enum BluetoothState {
@@ -32,7 +34,7 @@ class BluetoothManager: NSObject, ObservableObject {
     
     private var reconnectTimeoutTimer: Timer?
     private let reconnectTimeoutInterval: TimeInterval = 5.0
-
+    
     @EnvironmentObject var router: Router
     @Published var discoveredDevices: [CBPeripheral] = []
     @Published var connectedDevice: CBPeripheral?
@@ -69,45 +71,6 @@ class BluetoothManager: NSObject, ObservableObject {
             connectedDevice = nil
             bluetoothState = .notConnection
         }
-    }
-    
-    /// 주어진 데이터에 checksum 및 종료 바이트 추가 후 전송
-    func sendCommand(command: UInt8, with baseData: [UInt8] = []) {
-        print("sendCommand : \(command)")
-        
-        var packet = baseData
-        
-        // 헤더
-        packet.insert(command, at: 0)
-        
-        // 헤더만 있을 경우 제외
-        if (packet.count != 1) {
-            // 체크섬
-            let checksum = calculateChecksum(for: packet)
-            packet.append(checksum)
-        }
-        
-        // 테일
-        packet.append(Constants.Bluetooth.FOOTER)
-
-        send(packet: packet)
-    }
-    
-    // 체크섬 계산
-    private func calculateChecksum(for data: [UInt8]) -> UInt8 {
-        let sum = data.reduce(0) { $0 + UInt16($1) }
-        return UInt8(sum & 0x7F)
-    }
-
-    
-    // 데이터 송신
-    func send(packet: [UInt8]) {
-        guard let peripheral = connectedDevice,
-              let characteristic = writeCharacteristic else { return }
-
-        print("🛜 packet 전송 : \(packet)")
-        let data = Data(packet)
-        peripheral.writeValue(data, for: characteristic, type: .withResponse)
     }
     
     private func startReconnectTimeoutTimer(for peripheral: CBPeripheral) {
@@ -172,6 +135,8 @@ extension BluetoothManager: CBCentralManagerDelegate {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: {
             self.connectedDevice = peripheral
             PopupManager.shared.hideLoading()
+            
+            PacketManager.shared.setDeviceTime()
         })
         
         UserDefaultBLE.saveConnectedDevice(peripheral.identifier)
@@ -233,15 +198,17 @@ extension BluetoothManager: CBPeripheralDelegate {
             let dateFormatter = DateFormatter()
             dateFormatter.dateFormat = "mm:ss:SSSS"
             dateFormatter.string(from: .now)
-//            print("🔢 \(dateFormatter.string(from: .now)) HEX: \(hexString)")
+            print("🔢 \(dateFormatter.string(from: .now)) HEX: \(hexString)")
         }
         
         if let firstByte = value.first {
             switch firstByte {
             case Constants.Bluetooth.RECEIVE_VERSION:
                 eventPublisher.send(.deviceStatus(value))
-//            case Constants.Bluetooth.RECEIVE_WAVEFORM:
-//                eventPublisher.send(.waveform(value))
+            case Constants.Bluetooth.RECEIVE_EVENT:
+                eventPublisher.send(.savedEvent(value))
+            case Constants.Bluetooth.EMPTY_EVENT:
+                eventPublisher.send(.emptyEvent(value))
             default:
                 eventPublisher.send(.waveform(value))
 //                print("알 수 없는 데이터 타입: \(firstByte)")
@@ -250,10 +217,70 @@ extension BluetoothManager: CBPeripheralDelegate {
     }
     
     func peripheral(_ peripheral: CBPeripheral, didWriteValueFor characteristic: CBCharacteristic, error: Error?) {
+        onWriteResponse(error: error)
+    }
+}
+
+// 데이터 전송
+extension BluetoothManager {
+
+    // 전송 큐
+    private static var commandQueue: [[UInt8]] = []
+    private static var isSendingCommand: Bool = false
+
+    /// 커맨드 전송 (큐에 등록)
+    func sendCommand(_ command: UInt8, with baseData: [UInt8] = []) {
+        print("enqueueCommand : \(command)")
+
+        var packet = baseData
+        packet.insert(command, at: 0)
+
+        if packet.count != 1 {
+            let checksum = calculateChecksum(for: packet)
+            packet.append(checksum)
+        }
+
+        packet.append(Constants.Bluetooth.FOOTER)
+        enqueue(packet: packet)
+    }
+
+    /// 패킷 전송 큐에 추가
+    private func enqueue(packet: [UInt8]) {
+        BluetoothManager.commandQueue.append(packet)
+        processNextCommandIfNeeded()
+    }
+
+    /// 큐 처리: 하나씩 순차 전송
+    private func processNextCommandIfNeeded() {
+        guard !BluetoothManager.isSendingCommand,
+              !BluetoothManager.commandQueue.isEmpty,
+              let peripheral = connectedDevice,
+              let characteristic = writeCharacteristic else { return }
+
+        BluetoothManager.isSendingCommand = true
+        let nextPacket = BluetoothManager.commandQueue.removeFirst()
+
+        print("🛜 packet 전송 : \(nextPacket)")
+        let data = Data(nextPacket)
+        peripheral.writeValue(data, for: characteristic, type: .withResponse)
+    }
+
+    /// 데이터 전송 응답 처리 (didWriteValueFor에서 호출 필요)
+    func onWriteResponse(error: Error?) {
         if let error = error {
             print("❌ 데이터 전송 실패: \(error.localizedDescription)")
         } else {
-            print("✅ 데이터 전송 성공 to characteristic")
+            print("✅ 데이터 전송 성공")
         }
+
+        BluetoothManager.isSendingCommand = false
+        processNextCommandIfNeeded()
+    }
+
+    /// 체크섬 계산
+    private func calculateChecksum(for data: [UInt8]) -> UInt8 {
+        let sum = data.reduce(0) { $0 + UInt16($1) }
+        return UInt8(sum & 0x7F)
     }
 }
+

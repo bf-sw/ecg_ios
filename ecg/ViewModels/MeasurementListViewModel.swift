@@ -23,10 +23,10 @@ class MeasurementListViewModel: ObservableObject {
         }
     }
 
-    @Published var items: [MeasurementItem] = []
+    @Published var items: [MeasurementModel] = []
     
     // 아이템 선택 처리
-    func selectedItem(for item: MeasurementItem) {
+    func selectedItem(for item: MeasurementModel) {
         if let index = items.firstIndex(of: item) {
             items[index].isSelected.toggle()
             
@@ -45,15 +45,15 @@ class MeasurementListViewModel: ObservableObject {
     }
     
     // 저장된 데이터 불러오기
-    func loadSavedItems() -> [MeasurementItem] {
+    func loadSavedItems() -> [MeasurementModel] {
         let keys = DataManager.shared.getAllDataKeys()
         
-        let items: [MeasurementItem] = keys.compactMap { key -> MeasurementItem? in
+        let items: [MeasurementModel] = keys.compactMap { key -> MeasurementModel? in
             guard let waveforms = DataManager.shared.loadData(for: key) else {
                 return nil
             }
             
-            return MeasurementItem(
+            return MeasurementModel(
                 id: key,
                 waveforms: waveforms
             )

@@ -112,12 +112,10 @@ struct DirectMeasureView: View {
         .background(Color.backgroundColor)
         .navigationBarHidden(true)
         .onAppear() {
-            print("여기로 오닝")
             viewModel.startMeasurement(type: viewModel.selectedLeadType)
         }
         .onDisappear() {
             if (viewModel.triggerNavigation == false) {
-                print("스탑")
                 viewModel.stopMeasurement()
             }
         }

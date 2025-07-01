@@ -29,7 +29,13 @@ class PopupManager: ObservableObject {
         var cancelTitle: String?
         var onConfirm: () -> Void
         var onCancel: (() -> Void)?
+
+        // ✅ 추가된 필드
+        var showProgressBar: Bool = false
+        var progress: Double? = nil  // 0.0 ~ 1.0
+        var progressTitleProvider: ((Double) -> String)? = nil
     }
+
 
     func showPopup(
         title: String,
@@ -38,7 +44,10 @@ class PopupManager: ObservableObject {
         confirmTitle: String = "확인",
         cancelTitle: String? = nil,
         onConfirm: @escaping () -> Void = {},
-        onCancel: (() -> Void)? = nil
+        onCancel: (() -> Void)? = nil,
+        showProgressBar: Bool = false,
+        progress: Double? = nil,
+        progressTitleProvider: ((Double) -> String)? = nil
     ) {
         popup = PopupConfig(
             title: title,
@@ -53,7 +62,10 @@ class PopupManager: ObservableObject {
             onCancel: {
                 self.hidePopup()
                 onCancel?()
-            }
+            },
+            showProgressBar: showProgressBar,
+            progress: progress,
+            progressTitleProvider: progressTitleProvider
         )
     }
 
