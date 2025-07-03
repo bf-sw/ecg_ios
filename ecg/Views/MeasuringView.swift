@@ -38,7 +38,7 @@ struct MeasuringView: View {
         }
         .onChange(of: viewModel.isMeasurementFinished) { finished in
             if finished {
-                DataManager.shared.saveData(viewModel.waveforms)
+                DataManager.shared.saveRecordedData(viewModel.waveforms)
                 let timestamp = Int(viewModel.waveforms.last?.measureDate.timeIntervalSince1970 ?? 0)
                 let key = "waveform_\(timestamp)"
                 router.push(to: .result(item: MeasurementModel(

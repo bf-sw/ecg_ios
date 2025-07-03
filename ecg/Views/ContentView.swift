@@ -45,8 +45,6 @@ struct ContentView: View {
                                     ConnectionGuideView()
                                 case .result(let item):
                                     MeasurementResultView(item: item)
-                                case .loadEvent:
-                                    EventLoadView()
                                 default:
                                     EmptyView()
                                 }
@@ -67,6 +65,16 @@ struct ContentView: View {
                 case .event:
                     NavigationStack(path: $router.path) {
                         EventView()
+                            .navigationDestination(for: Route.self) { route in
+                                switch route {
+                                case .loadEvent:
+                                    EventLoadView()
+                                case .result(let item):
+                                    MeasurementResultView(item: item)
+                                default:
+                                    EmptyView()
+                                }
+                            }
                     }
                 case .settings:
                     NavigationStack(path: $router.path) {
@@ -80,6 +88,7 @@ struct ContentView: View {
             if state == .connecting {
                 PopupManager.shared.showLoading(title: "기기와 연결 중입니다.", subtitle: "잠시만 기다려 주세요.")
             } else if state == .disconnected {
+                self.router.selectedTab = .home
                 self.router.popToRoot()
                 ToastManager.shared.show(message: "블루투스 연결이 해제되었습니다.")
             }

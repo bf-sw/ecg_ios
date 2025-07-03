@@ -46,10 +46,10 @@ class MeasurementListViewModel: ObservableObject {
     
     // 저장된 데이터 불러오기
     func loadSavedItems() -> [MeasurementModel] {
-        let keys = DataManager.shared.getAllDataKeys()
+        let keys = DataManager.shared.getAllRecordedKeys()
         
         let items: [MeasurementModel] = keys.compactMap { key -> MeasurementModel? in
-            guard let waveforms = DataManager.shared.loadData(for: key) else {
+            guard let waveforms = DataManager.shared.loadRecordedData(for: key) else {
                 return nil
             }
             

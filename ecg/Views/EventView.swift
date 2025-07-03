@@ -10,7 +10,7 @@ import SwiftUI
 struct EventView: View {
     @EnvironmentObject var router: Router
     @State private var selectedOption: ListOption = .none
-    @StateObject var viewModel = MeasurementListViewModel()
+    @StateObject var viewModel = EventListViewModel()
     @StateObject var bluetoothManager = BluetoothManager.shared
     
     private let options: [ListOption] = [.load, .download, .delete]
@@ -92,7 +92,7 @@ struct EventView: View {
                             .cornerRadius(10)
                     }
                     Button(action: {
-                        // 다운로드 시작
+                        
                     }) {
                         Text(selectedOption.name)
                             .frame(width: 160)
@@ -109,7 +109,7 @@ struct EventView: View {
             }
         }
         .onAppear() {
-            
+            viewModel.loadSavedEventItems()
         }
         .ignoresSafeArea(.all, edges: .bottom)
         .background(Color.backgroundColor)
@@ -136,7 +136,7 @@ struct EventView: View {
                 GridItem(.flexible())
             ], spacing: 24) {
                 ForEach(viewModel.items) { item in
-                    MeasurementListView(viewModel: viewModel, item: item) {
+                    EventListView(viewModel: viewModel, item: item) {
                         router.push(to: .result(item: item))
                     }
                     .padding(.horizontal, 6)

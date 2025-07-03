@@ -107,15 +107,16 @@ struct HomeView: View {
         }
         .onChange(of: deviceStatusViewModel.deviceStatus) { status in
             if let count = status?.eventCount, count > 0 {
+                print("asd : \(status)")
                 PopupManager.shared.showPopup(
                     title: "심전도를 측정하셨나요?",
                     messageHeader: "연결한 기기에 심전도 측정 기록이 있어요.\n측정 기록을 불러올까요?",
                     confirmTitle: "확인", cancelTitle: "다음에 하기", onConfirm: {
+                        router.selectedTab = .event
                         router.push(to: .loadEvent)
                     })
             }
         }
-        .popup()
     }
      
     func connectedView() -> some View {

@@ -12,11 +12,13 @@ import SwiftUI
 enum LeadType: Int, Codable {
     case one = 0
     case six = 1
+    case event = 2
     
     init(from raw: Int) {
         switch raw {
         case 0: self = .one
         case 1: self = .six
+        case 2: self = .event
         default: self = .one
         }
     }
@@ -25,6 +27,7 @@ enum LeadType: Int, Codable {
         switch self {
         case .one: return "직접 1-유도"
         case .six: return "직접 6-유도"
+        case .event: return "이벤트 1-유도"
         }
     }
 }

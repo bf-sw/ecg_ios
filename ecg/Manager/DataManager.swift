@@ -9,10 +9,9 @@ import SwiftUI
 
 class DataManager {
     static let shared = DataManager()
-    private var documentDelegate: UIDocumentPickerDelegate?
-    private let dataKey = "waveform_keys"
-    
-    private func makeCSV(from waveforms: [Waveform]) -> String {
+
+    // MARK: - CSV 변환
+    private func makeCSV(from waveforms: [WaveformModel]) -> String {
         var csv = "Index,Lead1,Lead2,Lead3,AVR,AVL,AVF\n"
         for (index, waveform) in waveforms.enumerated() {
             let lead3 = waveform.calculateLead3()
@@ -23,57 +22,87 @@ class DataManager {
         }
         return csv
     }
-    
-    func saveData(_ waveforms: [Waveform]) {
+
+    // MARK: - 일반 기록용 저장
+    func saveRecordedData(_ waveforms: [WaveformModel]) {
         guard let last = waveforms.last else { return }
 
         let timestamp = Int(last.measureDate.timeIntervalSince1970)
-        let key = "waveform_\(timestamp)"
+        let key = "recorded_waveform_\(timestamp)"
         do {
             let data = try JSONEncoder().encode(waveforms)
             UserDefaults.standard.set(data, forKey: key)
-            appendSavedDataKeys(key)
-            print("✅ waveforms 저장 완료: \(key)")
+            appendSavedDataKeys(key, listKey: "recorded_waveform_keys")
+            print("✅ 기록용 waveforms 저장 완료: \(key)")
         } catch {
             print("❌ 저장 실패: \(error)")
         }
     }
     
-    func loadData(for key: String) -> [Waveform]? {
+    func loadRecordedData(for key: String) -> [WaveformModel]? {
         guard let data = UserDefaults.standard.data(forKey: key) else { return nil }
         do {
-            let decoder = JSONDecoder()
-            let waveforms = try decoder.decode([Waveform].self, from: data)
-            return waveforms
+            return try JSONDecoder().decode([WaveformModel].self, from: data)
         } catch {
-            print("❌ 불러오기 실패: \(error)")
+            print("❌ 기록용 불러오기 실패: \(error)")
             return nil
         }
     }
     
-    func deleteData(for keys: [String]) {
-        var savedKeys = getAllDataKeys()
+    func deleteRecordedData(for keys: [String]) {
+        var savedKeys = getAllRecordedKeys()
         for key in keys {
             UserDefaults.standard.removeObject(forKey: key)
             savedKeys.removeAll { $0 == key }
             print("🗑️ 삭제 완료: \(key)")
         }
-        UserDefaults.standard.set(savedKeys, forKey: dataKey)
     }
-    
-    func appendSavedDataKeys(_ key: String) {
-        var keys = UserDefaults.standard.stringArray(forKey: dataKey) ?? []
+
+
+    func getAllRecordedKeys() -> [String] {
+        return UserDefaults.standard.stringArray(forKey: "recorded_waveform_keys") ?? []
+    }
+
+    // MARK: - 이벤트용 저장
+    func saveEventData(_ waveforms: [WaveformModel]) {
+        guard let last = waveforms.last else { return }
+
+        let timestamp = Int(last.measureDate.timeIntervalSince1970)
+        let key = "event_waveform_\(timestamp)"
+        do {
+            let data = try JSONEncoder().encode(waveforms)
+            UserDefaults.standard.set(data, forKey: key)
+            appendSavedDataKeys(key, listKey: "event_waveform_keys")
+            print("✅ 이벤트용 waveforms 저장 완료: \(key)")
+        } catch {
+            print("❌ 저장 실패: \(error)")
+        }
+    }
+
+    func loadEventData(for key: String) -> [WaveformModel]? {
+        guard let data = UserDefaults.standard.data(forKey: key) else { return nil }
+        do {
+            return try JSONDecoder().decode([WaveformModel].self, from: data)
+        } catch {
+            print("❌ 이벤트용 불러오기 실패: \(error)")
+            return nil
+        }
+    }
+
+    func getAllEventKeys() -> [String] {
+        return UserDefaults.standard.stringArray(forKey: "event_waveform_keys") ?? []
+    }
+
+    // MARK: - 저장 키 관리
+    private func appendSavedDataKeys(_ key: String, listKey: String) {
+        var keys = UserDefaults.standard.stringArray(forKey: listKey) ?? []
         if !keys.contains(key) {
             keys.append(key)
-            UserDefaults.standard.set(keys, forKey: dataKey)
+            UserDefaults.standard.set(keys, forKey: listKey)
         }
     }
     
-    func getAllDataKeys() -> [String] {
-        return UserDefaults.standard.stringArray(forKey: dataKey) ?? []
-    }
-    
-    func exportCSVFiles(from items: [MeasurementItem]) {
+    func exportCSVFiles(from items: [MeasurementModel]) {
         var fileURLs: [URL] = []
 
         for item in items {
@@ -107,7 +136,6 @@ class DataManager {
         }
 
         let activityVC = UIActivityViewController(activityItems: urls, applicationActivities: nil)
-
         if let popover = activityVC.popoverPresentationController {
             popover.sourceView = topVC.view
             popover.sourceRect = CGRect(

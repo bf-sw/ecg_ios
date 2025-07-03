@@ -22,12 +22,12 @@ struct WaveformModel: Equatable, Codable, Hashable {
     let lead1: Int
     let lead2: Int
     let arrhythmiaCode: Int
-    let moduleType: Bool
+    var moduleType: Bool = false
     let leadType: LeadType
-    let isLead1Status: Bool
-    let isLead2Status: Bool
-    let isHeartbeatDetected: Bool
-    let batteryStatus: BatteryStatus
+    var isLead1Status: Bool = false
+    var isLead2Status: Bool = false
+    var isHeartbeatDetected: Bool = false
+    var batteryStatus: BatteryStatus = .unknown
     var measureDate: Date = .now
     
     var description: String {

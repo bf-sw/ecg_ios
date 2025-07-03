@@ -9,14 +9,14 @@ import SwiftUI
 
 struct EventLoadView: View {
     @EnvironmentObject var router: Router
-    @StateObject var viewModel = EventListViewModel()
-    @StateObject var eventViewModel = EventViewModel()
+    @StateObject var viewModel = EventLoadListViewModel()
+    @StateObject var eventLoadViewModel = EventLoadViewModel()
+    
     
     var body: some View {
         VStack {
             AppBarView(title: "측정 기록 불러오기", backAction: {
-                router.selectedTab = .home
-                router.popToRoot()
+                router.pop()
             })
             Text("저장할 데이터를 선택하세요.")
                 .font(.titleFont)
@@ -72,7 +72,13 @@ struct EventLoadView: View {
                         .cornerRadius(10)
                 }
                 Button(action: {
-
+                    let items = viewModel.items.filter { $0.isSelected }
+                    items.forEach { it in
+                        if let event = it.event {
+                            PacketManager.shared
+                                .downloadEvent(from: event.eventNumber)
+                        }
+                    }
                 }) {
                     Text("저장")
                         .frame(width: 160)
@@ -93,7 +99,7 @@ struct EventLoadView: View {
         .onAppear() {
             PacketManager.shared.searchEvent()
         }
-        .onReceive(eventViewModel.$events) { newEvents in
+        .onReceive(eventLoadViewModel.$events) { newEvents in
             let newModels = newEvents.map { EventModel(id: UUID().uuidString, event: $0) }
             viewModel.items = newModels
         }
@@ -107,7 +113,7 @@ struct EventLoadView: View {
                 GridItem(.flexible())
             ], spacing: 24) {
                 ForEach(viewModel.items) { item in
-                    EventListView(viewModel: viewModel, item: item)
+                    EventLoadListView(viewModel: viewModel, item: item)
                         .padding(.horizontal, 12)
                 }
             }

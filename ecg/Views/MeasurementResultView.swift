@@ -9,7 +9,6 @@ import SwiftUI
 
 struct MeasurementResultView: View {
     @EnvironmentObject var router: Router
-//    @EnvironmentObject var viewModel: WaveformViewModel
     let item: MeasurementModel
     
     private let options: [ListOption] = [.download, .delete]

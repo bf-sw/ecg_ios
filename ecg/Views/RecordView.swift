@@ -103,7 +103,7 @@ struct RecordView: View {
                             }
 
                             // UserDefaults 삭제
-                            DataManager.shared.deleteData(for: keysToDelete)
+                            DataManager.shared.deleteRecordedData(for: keysToDelete)
 
                             // ViewModel에서 항목 제거
                             viewModel.items.removeAll { item in

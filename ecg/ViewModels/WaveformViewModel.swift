@@ -97,6 +97,8 @@ class WaveformViewModel: ObservableObject {
         let lead1 = calculateLead(from: packet, startIndex: 2)
         let lead2 = calculateLead(from: packet, startIndex: 5)
         
+        print("heartRate : \(heartRate)")
+        
         return WaveformModel(
             heartRate: heartRate,
             lead1: lead1,
@@ -162,6 +164,8 @@ class WaveformViewModel: ObservableObject {
                                     return parsed.isLead1Status
                                 case .six:
                                     return parsed.isLead1Status && parsed.isLead2Status
+                                default :
+                                    return false
                                 }
                             }()
                             
@@ -187,6 +191,33 @@ class WaveformViewModel: ObservableObject {
                 break
             }
         }
+    }
+    
+    // 125바이트짜리 waveform 데이터 파싱
+    func parseDownloadedWaveformPacket(_ packet: [UInt8]) -> [Int]? {
+        guard packet.first == Constants.Bluetooth.RECEIVE_EVENT_DOWNLOAD else { return nil }
+        guard packet.last == Constants.Bluetooth.FOOTER else { return nil }
+
+        let checksum = packet[127]
+        let expected = UInt8(packet[0..<127].reduce(0, +) & 0x7F)
+        guard checksum == expected else {
+            print("❌ 체크섬 불일치 : \(checksum) != \(expected)")
+            return nil
+        }
+
+        let dataStart = 3
+        let dataEnd = 123
+        var values: [Int] = []
+
+        for i in stride(from: dataStart, to: dataEnd, by: 3) {
+            let high = packet[i].lowerBits(7)
+            let mid = packet[i+1].lowerBits(7)
+            let low = packet[i+2].lowerBits(7)
+            let value = (high << 14) + (mid << 7) + low - 0x100000
+            values.append(value)
+        }
+
+        return values
     }
     
     private func addGraphPoints(_ waveform: WaveformModel) {
