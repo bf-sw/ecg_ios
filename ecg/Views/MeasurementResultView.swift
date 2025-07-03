@@ -130,8 +130,7 @@ struct MeasurementResultView: View {
     // 옵션 선택 적용
     private func updateSelectedOption(to option: ListOption) {
         if (option == .download) {
-            let waveforms = item.waveforms
-            DataManager.shared.exportCSVFile(from: waveforms)
+            DataManager.shared.exportCSVFiles(from: [item])
         } else {
             print("option : \(option)")
         }
