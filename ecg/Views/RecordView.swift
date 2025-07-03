@@ -83,6 +83,43 @@ struct RecordView: View {
                     }
                     Button(action: {
 
+                        if selectedOption == .download {
+                            let selectedItems = viewModel.items.filter { $0.isSelected }
+                            if !selectedItems.isEmpty {
+                                DataManager.shared
+                                    .exportCSVFiles(from: selectedItems)
+                            }
+                            updateSelectedOption(to: .none)
+                            
+                        } else if selectedOption == .delete {
+                            let selectedItems = viewModel.items.filter { $0.isSelected }
+
+                            // 선택된 항목들의 waveforms 에서 measureDate 기반 key 추출
+                            let keysToDelete: [String] = selectedItems.compactMap { item in
+                                guard let last = item.waveforms.last else {
+                                    return nil
+                                }
+                                return "waveform_\(Int(last.measureDate.timeIntervalSince1970))"
+                            }
+
+                            // UserDefaults 삭제
+                            DataManager.shared.deleteData(for: keysToDelete)
+
+                            // ViewModel에서 항목 제거
+                            viewModel.items.removeAll { item in
+                                guard let last = item.waveforms.last else {
+                                    return false
+                                }
+                                let key = "waveform_\(Int(last.measureDate.timeIntervalSince1970))"
+                                return keysToDelete.contains(key)
+                            }
+
+                            // 선택모드 해제
+                            updateSelectedOption(to: .none)
+                            
+                            ToastManager.shared.show(message: "삭제 되었습니다.")
+                        }
+                        
                     }) {
                         Text(selectedOption.name)
                             .frame(width: 160)
